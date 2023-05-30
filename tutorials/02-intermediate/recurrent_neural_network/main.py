@@ -23,6 +23,8 @@ learning_rate = 0.01
 file_path = '../../data/MNIST/'
 
 if not os.path.exists(file_path):
+    if not os.path.exists('../../data'):
+        os.mkdir('../../data')
     # 下载数据集
     os.mkdir(file_path)
     base_url = 'http://yann.lecun.com/exdb/mnist/'
@@ -33,6 +35,7 @@ if not os.path.exists(file_path):
         print("正在从" + url + "下载MNIST数据集...")
         urllib.request.urlretrieve(url, os.path.join(file_path, file_name))
         with gzip.open(os.path.join(file_path, file_name), 'rb') as f_in:
+            print("正在解压数据集...")
             with open(os.path.join(file_path, file_name)[:-3], 'wb') as f_out:
                 shutil.copyfileobj(f_in, f_out)
         os.remove(os.path.join(file_path, file_name))
