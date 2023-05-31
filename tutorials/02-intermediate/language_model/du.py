@@ -34,8 +34,8 @@ class Corpus(object):
                     self.dictionary.add_word(word)
 
                     # Tokenize the file content
-        zeros = ops.zeros(tokens, mstype.int64)
-        ids = mindspore.Tensor(zeros, dtype=mstype.int64)
+        ids = ops.zeros(tokens, mstype.int64).asnumpy()
+        # ids = mindspore.Tensor(zeros, dtype=mstype.int64)
         token = 0
         with open(path, 'r') as f:
             for line in f:
@@ -43,6 +43,7 @@ class Corpus(object):
                 for word in words:
                     ids[token] = self.dictionary.word2idx[word]
                     token += 1
-        num_batches = ids.size(0) // batch_size
+        ids = mindspore.Tensor(ids, dtype=mstype.int64)
+        num_batches = ids.shape[0] // batch_size
         ids = ids[:num_batches * batch_size]
         return ids.view(batch_size, -1)

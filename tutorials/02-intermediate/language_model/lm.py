@@ -1,13 +1,9 @@
-import os
-import urllib.request
-import zipfile
-
-import mindspore.common.dtype as mstype
 import mindspore.dataset.vision
-import mindspore.dataset.vision.transforms as transforms
 import mindspore.nn as nn
 import mindspore.ops as ops
 import numpy as np
+from mindspore import Tensor
+
 from du import Corpus
 
 # 超参数
@@ -21,23 +17,11 @@ seq_length = 30
 learning_rate = 0.002
 
 # 加载数据集
-file_path = '../../data/PennTreeBank/'
+corpus = Corpus()
+ids = corpus.get_data('../../data/PennTreeBank/ptb.train.txt', batch_size)
+vocab_size = len(corpus.dictionary)
+num_batches = ids.shape[1] // seq_length
 
-image_transforms = transforms.ToTensor()
-label_transforms = transforms.ToTensor(output_type=np.int32)
-
-# 加载MNIST数据集
-train_dataset = mindspore.dataset.PennTreebankDataset(
-    dataset_dir=file_path,
-    usage='train',
-    shuffle=True
-).map(operations=image_transforms, input_columns="image").batch(batch_size=batch_size)
-
-test_dataset = mindspore.dataset.PennTreebankDataset(
-    dataset_dir=file_path,
-    usage='test',
-    shuffle=False
-).map(operations=image_transforms, input_columns="image").batch(batch_size=batch_size)
 
 # 基于RNN的语言模型
 class RNNLM(nn.Cell):
@@ -59,9 +43,9 @@ model = RNNLM(vocab_size, embed_size, hidden_size, num_layers)
 
 
 def forward(inputs, states, targets):
-    states = ops.stop_gradient(states)
+    states = tuple(ops.stop_gradient(state) for state in states)
     outputs, states = model(inputs, states)
-    loss = criterion(outputs, ops.reshape(targets, -1))
+    loss = criterion(outputs, ops.reshape(targets, Tensor(np.array([1]))))
     return loss
 
 
@@ -73,25 +57,26 @@ grad_fn = ops.value_and_grad(forward, None, optimizer.parameters)
 # 训练
 for epoch in range(num_epochs):
     model.set_train()
-    states = mindspore.Parameter((ops.zeros((num_layers, batch_size, hidden_size)),
-                                  ops.zeros((num_layers, batch_size, hidden_size))), requires_grad=False)
+    states = (ops.zeros((num_layers, batch_size, hidden_size)),
+              ops.zeros((num_layers, batch_size, hidden_size)))
 
     for i in range(0, ids.shape[1] - seq_length, seq_length):
         inputs = ids[:, i:i + seq_length]
-        targets = ids[:, (i + 1):(i + 1) + seq_length]
+        targets = mindspore.Tensor.int(ids[:, (i + 1):(i + 1) + seq_length])
 
         loss, grads = grad_fn(inputs, states, targets)
         ops.clip_by_global_norm(model.trainable_params())
         optimizer(grads)
 
         step = (i + 1) // seq_length
-        print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Perplexity: {:5.2f}'
-              .format(epoch + 1,
-                      num_epochs,
-                      step,
-                      num_batches,
-                      loss.asnumpy().item(),
-                      np.exp(loss.asnumpy().item())))
+        if step % 100 == 0:
+            print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Perplexity: {:5.2f}'
+                  .format(epoch + 1,
+                          num_epochs,
+                          step,
+                          num_batches,
+                          loss.asnumpy().item(),
+                          np.exp(loss.asnumpy().item())))
 
 # 测试模型
 model.set_train(False)
@@ -110,10 +95,11 @@ with open('sample.txt', 'w') as f:
 
         # Sample a word id
         prob = output.exp()
-        word_id = ops.multinomial(prob, num_samples=1).item()
+        word_id = ops.multinomial(prob, num_samples=1).asnumpy().item()
 
         # Fill input with sampled word id for the next time step
-        input.fill_(word_id)
+        fillV2=ops.FillV2()
+        input = fillV2((1,1),Tensor(word_id))
 
         # File write
         word = corpus.dictionary.idx2word[word_id]
