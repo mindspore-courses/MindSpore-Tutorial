@@ -4,7 +4,7 @@ import mindspore.ops as ops
 import numpy as np
 from mindspore import Tensor
 
-from du import Corpus
+from data_utils import Corpus
 
 # 超参数
 embed_size = 128
