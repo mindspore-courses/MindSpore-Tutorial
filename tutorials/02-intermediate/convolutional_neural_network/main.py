@@ -2,16 +2,13 @@ import gzip
 import os
 import shutil
 import urllib.request
-import zipfile
 
-import numpy as np
-
-import mindspore
-import mindspore.nn as nn
+import mindspore.common.dtype as mstype
 import mindspore.dataset.vision
 import mindspore.dataset.vision.transforms as transforms
+import mindspore.nn as nn
+import numpy as np
 from mindspore import ops
-import mindspore.common.dtype as mstype
 
 # Hyper parameters
 num_epochs = 5
@@ -19,12 +16,12 @@ num_classes = 10
 batch_size = 100
 learning_rate = 0.001
 
-file_path = '../../data/MNIST/'
+file_path = '../../../data/MNIST/'
 
 if not os.path.exists(file_path):
     # 下载数据集
-    if not os.path.exists('../../data'):
-        os.mkdir('../../data')
+    if not os.path.exists('../../../data'):
+        os.mkdir('../../../data')
     os.mkdir(file_path)
     base_url = 'http://yann.lecun.com/exdb/mnist/'
     file_names = ['train-images-idx3-ubyte.gz', 'train-labels-idx1-ubyte.gz',
