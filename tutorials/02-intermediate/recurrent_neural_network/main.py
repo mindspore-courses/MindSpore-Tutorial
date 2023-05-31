@@ -67,7 +67,7 @@ class RNN(nn.Cell):
         self.fc = nn.Dense(hidden_size, num_classes)
 
     def construct(self, x):
-        # 设置初始隐藏层
+        # 设置初始状态
         h0 = ops.zeros(size=(self.num_layers, x.shape[0], self.hidden_size))
         c0 = ops.zeros(size=(self.num_layers, x.shape[0], self.hidden_size))
 
@@ -115,5 +115,5 @@ for image, label in test_dataset.create_tuple_iterator():
 print('Test Accuracy of the model on the 10000 test images: {:.2f} %'.format(100 * correct / total))
 
 # 保存模型
-save_path = './rnn.ckpt'
+save_path = './birnn.ckpt'
 mindspore.save_checkpoint(model, save_path)
