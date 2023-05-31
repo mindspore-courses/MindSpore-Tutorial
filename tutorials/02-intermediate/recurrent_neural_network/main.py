@@ -20,11 +20,11 @@ batch_size = 100
 num_epochs = 2
 learning_rate = 0.01
 
-file_path = '../../data/MNIST/'
+file_path = '../../../data/MNIST/'
 
 if not os.path.exists(file_path):
-    if not os.path.exists('../../data'):
-        os.mkdir('../../data')
+    if not os.path.exists('../../../data'):
+        os.mkdir('../../../data')
     # 下载数据集
     os.mkdir(file_path)
     base_url = 'http://yann.lecun.com/exdb/mnist/'

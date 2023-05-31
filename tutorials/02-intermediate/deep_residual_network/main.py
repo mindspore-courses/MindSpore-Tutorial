@@ -9,11 +9,11 @@ import mindspore.nn as nn
 import mindspore.ops as ops
 from mindspore import Tensor
 
-file_path = '../../data/CIFAR-10'
+file_path = '../../../data/CIFAR-10'
 
 if not os.path.exists(file_path):
-    if not os.path.exists('../../data'):
-        os.mkdir('../../data')
+    if not os.path.exists('../../../data'):
+        os.mkdir('../../../data')
     # 下载CIFAR-10数据集
     os.mkdir(file_path)
     url = 'https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz'
