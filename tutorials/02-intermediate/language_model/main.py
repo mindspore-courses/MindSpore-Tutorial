@@ -1,8 +1,15 @@
+import math
+
 import mindspore.dataset.vision
 import mindspore.nn as nn
 import mindspore.ops as ops
 import numpy as np
 from mindspore import Tensor
+from mindspore.common.initializer import HeUniform, _calculate_fan_in_and_fan_out, initializer, Uniform
+from mindspore.ops import composite as C
+from mindspore.ops import functional as F
+from mindspore.ops import operations as P
+import mindspore.common.dtype as mstype
 
 from data_utils import Corpus
 
@@ -15,6 +22,8 @@ num_samples = 1000  # 要采样的词数
 batch_size = 20
 seq_length = 30
 learning_rate = 0.002
+GRADIENT_CLIP_MIN = -64000
+GRADIENT_CLIP_MAX = 64000
 
 # 加载数据集
 corpus = Corpus()
@@ -23,13 +32,28 @@ vocab_size = len(corpus.dictionary)
 num_batches = ids.shape[1] // seq_length
 
 
+# pytorch like style
+class Dense(nn.Dense):
+    def __init__(self, in_channels, out_channels, has_bias=True, activation=None):
+        super().__init__(in_channels, out_channels, weight_init='normal', bias_init='zeros', has_bias=has_bias,
+                         activation=activation)
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        self.weight.set_data(initializer(HeUniform(math.sqrt(5)), self.weight.shape))
+        if self.has_bias:
+            fan_in, _ = _calculate_fan_in_and_fan_out(self.weight.shape)
+            bound = 1 / math.sqrt(fan_in)
+            self.bias.set_data(initializer(Uniform(bound), [self.out_channels]))
+
+
 # 基于RNN的语言模型
 class RNNLM(nn.Cell):
     def __init__(self, vocab_size, embed_size, hidden_size, num_layers):
         super(RNNLM, self).__init__()
         self.embed = nn.Embedding(vocab_size, embed_size)
         self.lstm = nn.LSTM(embed_size, hidden_size, num_layers, batch_first=True)
-        self.linear = nn.Dense(hidden_size, vocab_size)
+        self.linear = Dense(hidden_size, vocab_size)
 
     def construct(self, x, h):
         x = self.embed(x)
@@ -43,7 +67,7 @@ model = RNNLM(vocab_size, embed_size, hidden_size, num_layers)
 
 
 def forward(inputs, states, targets):
-    states = tuple(ops.stop_gradient(state) for state in states)
+    # states = tuple(ops.stop_gradient(state) for state in states)
     outputs, states = model(inputs, states)
     loss = criterion(outputs, ops.reshape(targets, Tensor(np.array([1]))))
     return loss
@@ -65,7 +89,7 @@ for epoch in range(num_epochs):
         targets = mindspore.Tensor.int(ids[:, (i + 1):(i + 1) + seq_length])
 
         loss, grads = grad_fn(inputs, states, targets)
-        ops.clip_by_global_norm(model.trainable_params())
+        grads = ops.clip_by_global_norm(grads, 0.5)
         optimizer(grads)
 
         step = (i + 1) // seq_length
@@ -81,27 +105,20 @@ for epoch in range(num_epochs):
 # 测试模型
 model.set_train(False)
 with open('sample.txt', 'w') as f:
-    # Set intial hidden ane cell states
     state = (ops.zeros((num_layers, 1, hidden_size)),
              ops.zeros((num_layers, 1, hidden_size)))
 
-    # Select one word id randomly
     prob = ops.ones(vocab_size)
     input = ops.multinomial(prob, num_samples=1).unsqueeze(1)
 
     for i in range(num_samples):
-        # Forward propagate RNN
         output, state = model(input, state)
 
-        # Sample a word id
         prob = output.exp()
         word_id = ops.multinomial(prob, num_samples=1).asnumpy().item()
 
-        # Fill input with sampled word id for the next time step
-        fillV2=ops.FillV2()
-        input = fillV2((1,1),Tensor(word_id))
+        input = ops.fill(mstype.int32, input.shape, 1)
 
-        # File write
         word = corpus.dictionary.idx2word[word_id]
         word = '\n' if word == '<eos>' else word + ' '
         f.write(word)
