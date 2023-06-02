@@ -135,13 +135,6 @@ train_model = nn.WithLossCell(model, loss_fn=criterion)
 
 train_model = nn.TrainOneStepCell(train_model, optimizer)
 
-
-# 更新学习率
-def update_lr(optimizer, lr):
-    for param_group in optimizer.parameters:
-        param_group['lr'] = lr
-
-
 # 训练
 curr_lr = learning_rate
 for epoch in range(num_epochs):
