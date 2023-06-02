@@ -6,6 +6,7 @@ import urllib
 from urllib import request
 
 import mindspore
+import mindspore.common.dtype as mstype
 from mindspore import nn, ops
 from mindspore.common.initializer import HeUniform
 from mindspore.dataset.vision import transforms, write_png
@@ -83,7 +84,8 @@ G_Optim = nn.optim.Adam(G.trainable_params(), learning_rate=0.0002)
 
 def denorm(x):
     out = (x + 1) / 2
-    return ops.clamp(out, 0, 1)
+    cast = ops.Cast()
+    return cast((ops.clamp(out, 0, 1)), mstype.uint8)
 
 
 def G_Forward(valid):
