@@ -97,14 +97,16 @@ def G_Forward(valid):
 
 
 def D_Forward(real_imgs, gen_imgs, valid, fake):
-    real_loss = criterion(D(real_imgs), valid)
-    fake_loss = criterion(D(gen_imgs), fake)
+    real_score = D(real_imgs)
+    fake_score = D(gen_imgs)
+    real_loss = criterion(real_score, valid)
+    fake_loss = criterion(fake_score, fake)
     d_loss = (real_loss + fake_loss)
-    return d_loss
+    return d_loss, real_score, fake_score
 
 
 grad_g = ops.value_and_grad(G_Forward, None, G_Optim.parameters, has_aux=True)
-grad_d = ops.value_and_grad(D_Forward, None, D_Optim.parameters)
+grad_d = ops.value_and_grad(D_Forward, None, D_Optim.parameters, has_aux=True)
 
 for epoch in range(num_epochs):
     for i, (image, _) in enumerate(dataset.create_tuple_iterator()):
@@ -118,7 +120,7 @@ for epoch in range(num_epochs):
 
         z = ops.randn(batch_size, latent_size)
 
-        d_loss, d_grads = grad_d(image, G(z), real_labels, fake_labels)
+        (d_loss, real_score, fake_score), d_grads = grad_d(image, G(z), real_labels, fake_labels)
         D_Optim(d_grads)
 
         # Generator
@@ -126,9 +128,10 @@ for epoch in range(num_epochs):
         G_Optim(g_grads)
 
         if (i + 1) % 200 == 0:
-            print('Epoch [{}/{}], Step [{}/{}], d_loss: {:.4f}, g_loss: {:.4f}'
+            print('Epoch [{}/{}], Step [{}/{}], d_loss: {:.4f}, g_loss: {:.4f}, D(x): {:.2f}, D(G(z)): {:.2f}'
                   .format(epoch, num_epochs, i + 1, total_step,
-                          d_loss.asnumpy().item(), g_loss.asnumpy().item()))
+                          d_loss.asnumpy().item(), g_loss.asnumpy().item(),
+                          ops.mean(real_score).asnumpy().item(), ops.mean(fake_score).asnumpy().item()))
 
     # Save real images
     if (epoch + 1) == 1:
