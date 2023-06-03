@@ -10,6 +10,7 @@ import mindspore.common.dtype as mstype
 from mindspore import nn, ops
 from mindspore.common.initializer import HeUniform
 from mindspore.dataset.vision import transforms, write_png
+from img_utils import to_image
 
 # 超参数
 latent_size = 64
@@ -84,8 +85,7 @@ G_Optim = nn.optim.Adam(G.trainable_params(), learning_rate=0.0002)
 
 def denorm(x):
     out = (x + 1) / 2
-    cast = ops.Cast()
-    return cast((ops.clamp(out, 0, 1)), mstype.uint8)
+    return ops.clamp(out, 0, 1)
 
 
 def G_Forward(valid):
@@ -122,7 +122,7 @@ for epoch in range(num_epochs):
         D_Optim(d_grads)
 
         # Generator
-        (g_loss, gen_imgs), g_grads = grad_g(real_labels)
+        (g_loss, fake_images), g_grads = grad_g(real_labels)
         G_Optim(g_grads)
 
         if (i + 1) % 200 == 0:
@@ -133,8 +133,11 @@ for epoch in range(num_epochs):
     # Save real images
     if (epoch + 1) == 1:
         image = ops.reshape(image, (image.shape[0], 1, 28, 28))
-        write_png(os.path.join(sample_dir, 'real_images.png'), denorm(image))
+        to_image(denorm(image), os.path.join(sample_dir, 'real_images.png'))
 
     # Save sampled images
     fake_images = ops.reshape(fake_images, (fake_images.shape[0], 1, 28, 28))
-    write_png(os.path.join(sample_dir, 'fake_images-{}.png'.format(epoch + 1)), denorm(fake_images))
+    to_image(denorm(fake_images), os.path.join(sample_dir, 'fake_images-{}.png'.format(epoch + 1)))
+
+mindspore.save_checkpoint(G, './g.ckpt')
+mindspore.save_checkpoint(D, './d.ckpt')
