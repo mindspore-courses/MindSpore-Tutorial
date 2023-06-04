@@ -2,7 +2,7 @@
 
 #### 1. Basics
 
-* [PyTorch Basics](https://github.com/rev0cat/MindSpore-Tutorial/blob/master/tutorials/01-basics/mindspore_basics/main.py)
+* [MindSpore Basics](https://github.com/rev0cat/MindSpore-Tutorial/blob/master/tutorials/01-basics/mindspore_basics/main.py)
 * [Linear Regression](https://github.com/rev0cat/MindSpore-Tutorial/blob/master/tutorials/01-basics/linear_regression/main.py#L22-L23)
 * [Logistic Regression](https://github.com/rev0cat/MindSpore-Tutorial/blob/master/tutorials/01-basics/logistic_regression/main.py#L33-L34)
 * [Feedforward Neural Network](https://github.com/rev0cat/MindSpore-Tutorial/blob/master/tutorials/01-basics/feedforward_neural_network/main.py#L37-L49)
