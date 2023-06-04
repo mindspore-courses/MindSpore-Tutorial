@@ -24,7 +24,7 @@
 
 #### 4. Utilities
 
-* [TensorBoard in PyTorch](https://github.com/rev0cat/MindSpore-Tutorial/blob/master/tutorials/04-utils/tensorboard)
+* [TensorBoard in MindSpore](https://github.com/rev0cat/MindSpore-Tutorial/blob/master/tutorials/04-utils/tensorboard)
 
 <br/>
 
