@@ -27,7 +27,7 @@ GRADIENT_CLIP_MAX = 64000
 
 # 加载数据集
 corpus = Corpus()
-ids = corpus.get_data('../../data/PennTreeBank/ptb.train.txt', batch_size)
+ids = corpus.get_data('../../../data/PennTreeBank/ptb.train.txt', batch_size)
 vocab_size = len(corpus.dictionary)
 num_batches = ids.shape[1] // seq_length
 
