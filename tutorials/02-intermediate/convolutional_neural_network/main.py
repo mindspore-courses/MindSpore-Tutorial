@@ -1,4 +1,5 @@
 import gzip
+import math
 import os
 import shutil
 import urllib.request
@@ -9,6 +10,7 @@ import mindspore.dataset.vision.transforms as transforms
 import mindspore.nn as nn
 import numpy as np
 from mindspore import ops
+from mindspore.common.initializer import HeUniform
 
 # Hyper parameters
 num_epochs = 5
@@ -63,7 +65,7 @@ class CNN(nn.Cell):
             nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2))
-        self.fc = nn.Dense(7 * 7 * 32, num_classes)
+        self.fc = nn.Dense(7 * 7 * 32, num_classes, weight_init=HeUniform(math.sqrt(5)))
 
     def construct(self, x):
         out = self.layer1(x)

@@ -1,4 +1,5 @@
 import gzip
+import math
 import os
 import shutil
 import urllib.request
@@ -9,6 +10,7 @@ import mindspore.dataset.vision.transforms as transforms
 import mindspore.nn as nn
 import mindspore.ops as ops
 import numpy as np
+from mindspore.common.initializer import HeUniform
 
 # 设置超参数
 sequence_length = 28
@@ -64,7 +66,7 @@ class RNN(nn.Cell):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc = nn.Dense(hidden_size, num_classes)
+        self.fc = nn.Dense(hidden_size, num_classes, weight_init=HeUniform(math.sqrt(5)))
 
     def construct(self, x):
         # 设置初始状态

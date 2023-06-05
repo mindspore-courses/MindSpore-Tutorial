@@ -1,15 +1,12 @@
 import math
 
+import mindspore.common.dtype as mstype
 import mindspore.dataset.vision
 import mindspore.nn as nn
 import mindspore.ops as ops
 import numpy as np
 from mindspore import Tensor
 from mindspore.common.initializer import HeUniform, _calculate_fan_in_and_fan_out, initializer, Uniform
-from mindspore.ops import composite as C
-from mindspore.ops import functional as F
-from mindspore.ops import operations as P
-import mindspore.common.dtype as mstype
 
 from data_utils import Corpus
 
@@ -32,7 +29,6 @@ vocab_size = len(corpus.dictionary)
 num_batches = ids.shape[1] // seq_length
 
 
-# pytorch like style
 class Dense(nn.Dense):
     def __init__(self, in_channels, out_channels, has_bias=True, activation=None):
         super().__init__(in_channels, out_channels, weight_init='normal', bias_init='zeros', has_bias=has_bias,

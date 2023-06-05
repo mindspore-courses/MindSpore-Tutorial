@@ -1,3 +1,4 @@
+import math
 import os
 import tarfile
 import urllib.request
@@ -8,6 +9,7 @@ import mindspore.dataset.vision.transforms as transforms
 import mindspore.nn as nn
 import mindspore.ops as ops
 from mindspore import Tensor
+from mindspore.common.initializer import HeUniform
 
 file_path = '../../../data/CIFAR-10'
 
@@ -97,7 +99,7 @@ class ResNet(nn.Cell):
         self.layer2 = self.make_layer(block, 32, layers[1], 2)
         self.layer3 = self.make_layer(block, 64, layers[2], 2)
         self.avg_pool = nn.AvgPool2d(8)
-        self.fc = nn.Dense(64, num_classes)
+        self.fc = nn.Dense(64, num_classes, weight_init=HeUniform(math.sqrt(5)))
 
     def make_layer(self, block, out_channels, blocks, stride=1):
         downsample = None
