@@ -8,7 +8,7 @@ import mindspore.dataset.vision.py_transforms as pvision
 import numpy as np
 from PIL import Image
 from mindcv.models import vgg19
-from mindspore import nn, ops
+from mindspore import nn, ops, Tensor, Parameter
 
 from img_utils import to_image
 
@@ -83,12 +83,12 @@ def main(config):
     # 图像预处理
     transforms = [pvision.ToTensor(), pvision.Normalize(mean=(0.485, 0.456, 0.406),
                                                         std=(0.229, 0.224, 0.225))]
-    # 加载内容和风格图像
+
     content = load_image(config.content, transforms, max_size=config.max_size)
     style = load_image(config.style, transforms, shape=[content.shape[2], content.shape[3]])
 
     # 初始化目标图像
-    target = mindspore.Parameter(content)
+    target = Parameter(content)
 
     optimizer = nn.optim.Adam([target], learning_rate=config.lr, beta1=0.5, beta2=0.999)
     target = mindspore.Tensor(target)

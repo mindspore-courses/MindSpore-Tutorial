@@ -37,8 +37,8 @@ def main(args):
     decoder = DecoderRNN(args.embed_size, args.hidden_size, len(vocab), args.num_layers)
 
     # Load the trained model parameters
-    encoder.load_state_dict(mindspore.load_checkpoint(args.encoder_path))
-    decoder.load_state_dict(mindspore.load_checkpoint(args.decoder_path))
+    encoder.load_state_dict(mindspore.load(args.encoder_path))
+    decoder.load_state_dict(mindspore.load(args.decoder_path))
 
     # Prepare an image
     image = load_image(args.image, transform)

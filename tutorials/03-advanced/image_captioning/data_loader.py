@@ -90,7 +90,7 @@ def collate_fn(data):
 
 def get_dataset(root, json, vocab, transform, batch_size, shuffle, python_multiprocessing):
     """Returns torch.utils.data.DataLoader for custom coco dataset."""
-    # COCO caption dataset
+    #COCO caption dataset
     coco = CocoDataset(root=root,
                        json=json,
                        vocab=vocab,
