@@ -92,34 +92,11 @@ def main(config):
 
     optimizer = nn.optim.Adam([target], learning_rate=config.lr, beta1=0.5, beta2=0.999)
     target = mindspore.Tensor(target)
-    grad_fn = ops.grad(forward, None, optimizer.parameters)
+    grad_fn = ops.value_and_grad(forward, None, optimizer.parameters,has_aux=True)
     vgg.set_train(False)
 
     for step in range(config.total_step):
-        target_features = vgg(target)
-        content_features = vgg(content)
-        style_features = vgg(style)
-
-        style_loss = 0
-        content_loss = 0
-        for f1, f2, f3 in zip(target_features, content_features, style_features):
-            # Compute content loss with target and content images
-            content_loss += ops.mean((f1 - f2) ** 2)
-
-            # Reshape convolutional feature maps
-            c, h, w = f1.shape[1], f1.shape[2], f1.shape[3]
-            f1 = f1.view(c, h * w)
-            f3 = f3.view(c, h * w)
-
-            # Compute gram matrix
-            f1 = ops.matmul(f1, f1.t())
-            f3 = ops.matmul(f3, f3.t())
-
-            # Compute style loss with target and style images
-            style_loss += ops.mean((f1 - f3) ** 2) / (c * h * w)
-            # loss = content_loss + config.style_weight * style_loss
-        loss = content_loss + config.style_weight * style_loss
-        grads = grad_fn(content, target, style)
+        (content_loss,style_loss),grads = grad_fn(content,target,style)
         optimizer(grads)
         if (step + 1) % config.log_step == 0:
             print('Step [{}/{}], Content Loss: {:.4f}, Style Loss: {:.4f}'
