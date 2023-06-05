@@ -92,11 +92,11 @@ def main(config):
 
     optimizer = nn.optim.Adam([target], learning_rate=config.lr, beta1=0.5, beta2=0.999)
     target = mindspore.Tensor(target)
-    grad_fn = ops.value_and_grad(forward, None, optimizer.parameters,has_aux=True)
+    grad_fn = ops.value_and_grad(forward, None, optimizer.parameters, has_aux=True)
     vgg.set_train(False)
 
     for step in range(config.total_step):
-        (content_loss,style_loss),grads = grad_fn(content,target,style)
+        (content_loss, style_loss), grads = grad_fn(content, target, style)
         optimizer(grads)
         if (step + 1) % config.log_step == 0:
             print('Step [{}/{}], Content Loss: {:.4f}, Style Loss: {:.4f}'
