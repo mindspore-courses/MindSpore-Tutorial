@@ -76,7 +76,7 @@ def forward(content, target, style):
 
         # Compute style loss with target and style images
         style_loss += ops.mean((f1 - f3) ** 2) / (c * h * w)
-    return content_loss, style_loss
+    return content_loss + config.style_weight * style_loss, content_loss, style_loss
 
 
 def main(config):
@@ -88,16 +88,16 @@ def main(config):
     style = load_image(config.style, transforms, shape=[content.shape[2], content.shape[3]])
 
     # 初始化目标图像
-    target = Parameter(content)
+    target = Parameter(content, requires_grad=True)
 
     optimizer = nn.optim.Adam([target], learning_rate=config.lr, beta1=0.5, beta2=0.999)
-    target = mindspore.Tensor(target)
     grad_fn = ops.value_and_grad(forward, None, optimizer.parameters, has_aux=True)
     vgg.set_train(False)
 
     for step in range(config.total_step):
-        (content_loss, style_loss), grads = grad_fn(content, target, style)
+        (loss, content_loss, style_loss), grads = grad_fn(content, target, style)
         optimizer(grads)
+        target = vgg.trainable_params()[0]
         if (step + 1) % config.log_step == 0:
             print('Step [{}/{}], Content Loss: {:.4f}, Style Loss: {:.4f}'
                   .format(step + 1, config.total_step, content_loss.asnumpy().item(), style_loss.asnumpy().item()))
