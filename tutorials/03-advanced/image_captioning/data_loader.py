@@ -6,6 +6,7 @@ import numpy as np
 import nltk
 from PIL import Image
 from mindspore import ops
+from mindspore.dataset import transforms
 
 from build_vocab import Vocabulary
 from pycocotools.coco import COCO
@@ -23,7 +24,7 @@ class CocoDataset:
             vocab: vocabulary wrapper.
             transform: image transformer.
         """
-        # super(CocoDataset, self).__init__()
+        super(CocoDataset, self).__init__()
         self.root = root
         self.coco = COCO(json)
         self.ids = list(self.coco.anns.keys())
@@ -59,7 +60,7 @@ class CocoDataset:
         return len(self.ids)
 
 
-def collate_fn(data):
+def collate_fn(images, captions):
     """Creates mini-batch tensors from the list of tuples (image, caption).
 
     We should build custom collate_fn rather than using default collate_fn,
@@ -77,7 +78,8 @@ def collate_fn(data):
     """
     # Sort a data list by caption length (descending order).
     # data.sort(key=lambda x: len(x[1]), reverse=True)
-    images, captions = zip(*data)
+
+    # images, captions = zip(*data)
 
     # Merge images (from tuple of 3D tensor to 4D tensor).
     images = ops.stack(images, 0)
@@ -93,7 +95,7 @@ def collate_fn(data):
 
 def get_dataset(root, json, vocab, transform, batch_size, shuffle, python_multiprocessing):
     """Returns torch.utils.data.DataLoader for custom coco dataset."""
-    #COCO caption dataset
+    # COCO caption dataset
     coco = CocoDataset(root=root,
                        json=json,
                        vocab=vocab,
@@ -107,8 +109,14 @@ def get_dataset(root, json, vocab, transform, batch_size, shuffle, python_multip
     data_loader = mindspore.dataset.GeneratorDataset(source=coco,
                                                      shuffle=shuffle,
                                                      python_multiprocessing=python_multiprocessing,
-                                                     column_names=['images', 'captions'])\
-        .apply(collate_fn).batch(batch_size)
+                                                     column_names=['images', 'captions'])
+
+    data_loader = data_loader.map(operations=transforms.PadEnd(pad_shape=[30]), input_columns=['captions'])
+    print("pad complete!")
+    data_loader = data_loader.batch(batch_size)
+    print("batch complete!")
+    # data_loader = data_loader.apply(collate_fn)
+    data_loader = data_loader.map(operations=collate_fn, input_columns=['images', 'captions'],
+                                  output_columns=['images', 'captions', 'length'])
+    print("collate complete!")
     return data_loader
-
-

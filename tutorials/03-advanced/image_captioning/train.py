@@ -43,14 +43,20 @@ def main(args):
     decoder = DecoderRNN(args.embed_size, args.hidden_size, len(vocab), args.num_layers)
 
     criterion = nn.CrossEntropyLoss()
-    params = list(decoder.trainable_params()) + list(encoder.trainable_params()) + list(encoder.bn.trainable_params())
-    optimizer = nn.optim.Adam(params, args.learning_rate)
+    cell_list = nn.CellList()
+    cell_list.append(decoder)
+    cell_list.append(encoder)
+    cell_list.append(encoder.bn)
+    # o_params = list(decoder.trainable_params()) + list(encoder.trainable_params()) + list(encoder.bn.trainable_params())
+    # o_params[5].name = 'linear1_weight'
+    # o_params[6].name = 'linear1_bias'
+    optimizer = nn.optim.Adam(cell_list.trainable_params(), args.learning_rate)
     grad_fn = ops.value_and_grad(forward, None, optimizer.parameters)
     total_step = dataset.get_dataset_size()
     encoder.set_train()
     decoder.set_train()
     for epoch in range(args.num_epochs):
-        for i, (images, captions, lengths) in enumerate(dataset):
+        for i, (images, captions, lengths) in enumerate(dataset.create_dict_iterator()):
             loss, grads = grad_fn(images, captions, lengths, encoder, decoder, criterion)
             optimizer(grads)
 
