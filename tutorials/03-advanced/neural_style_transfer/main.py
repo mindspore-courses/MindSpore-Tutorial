@@ -3,12 +3,12 @@ from __future__ import division
 import argparse
 
 import mindspore
-import mindspore.common.dtype as mstype
-import mindspore.dataset.vision.py_transforms as pvision
+import mindspore.dataset.transforms as trans
 import numpy as np
 from PIL import Image
 from mindcv.models import vgg19
-from mindspore import nn, ops, Tensor, Parameter
+from mindspore import nn, ops, Parameter
+from mindspore.dataset.transforms import Compose
 
 from img_utils import to_image
 
@@ -26,10 +26,9 @@ def load_image(image_path, transform=None, max_size=None, shape=None):
         image = image.resize(shape, Image.LANCZOS)
 
     if transform:
-        image = transform[0](image)
-        image = transform[1](image)
+        image = transform(image)
         image = mindspore.Tensor(image)
-        image = ops.unsqueeze(image, 0)
+        # image = image.unsqueeze(0)
     return image
 
 
@@ -43,10 +42,13 @@ class VGGNet(nn.Cell):
         features = []
         cell_list = self.vgg.cell_list
         i = 0
+        y = -1
         for layer in cell_list:
             x = layer(x)
             if str(i) in self.select:
                 features.append(x)
+                y += 1
+            features[y] = x
             i += 1
         return features
 
@@ -81,8 +83,8 @@ def forward(content, target, style):
 
 def main(config):
     # 图像预处理
-    transforms = [pvision.ToTensor(), pvision.Normalize(mean=(0.485, 0.456, 0.406),
-                                                        std=(0.229, 0.224, 0.225))]
+    transforms = Compose([trans.vision.ToTensor()])
+                          # trans.vision.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), is_hwc=False)])
 
     content = load_image(config.content, transforms, max_size=config.max_size)
     style = load_image(config.style, transforms, shape=[content.shape[2], content.shape[3]])
@@ -91,22 +93,23 @@ def main(config):
     target = Parameter(content, requires_grad=True)
 
     optimizer = nn.optim.Adam([target], learning_rate=config.lr, beta1=0.5, beta2=0.999)
-    grad_fn = ops.value_and_grad(forward, None, optimizer.parameters, has_aux=True)
+    # content, target, style,
+    # position is 1
+    grad_fn = ops.value_and_grad(forward, 1, has_aux=True)
     vgg.set_train(False)
 
     for step in range(config.total_step):
         (loss, content_loss, style_loss), grads = grad_fn(content, target, style)
-        optimizer(grads)
-        target = vgg.trainable_params()[0]
+        optimizer((grads,))
         if (step + 1) % config.log_step == 0:
             print('Step [{}/{}], Content Loss: {:.4f}, Style Loss: {:.4f}'
                   .format(step + 1, config.total_step, content_loss.asnumpy().item(), style_loss.asnumpy().item()))
 
         if (step + 1) % config.sample_step == 0:
             # Save the generated image
-            denorm = pvision.Normalize((-2.12, -2.04, -1.80), (4.37, 4.46, 4.44))
+            # denorm = trans.vision.Normalize((-2.12, -2.04, -1.80), (4.37, 4.46, 4.44))
             img = target.clone().squeeze()
-            img = denorm(img).clamp_(0, 1)
+            img = img.clamp(0, 1)
             to_image(img, 'output-{}.png'.format(step + 1))
 
 

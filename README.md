@@ -33,7 +33,7 @@
 ```bash
 $ git clone https://github.com/rev0cat/MindSpore-Tutorial.git
 $ cd MindSpore-Tutorial/tutorials/PATH_TO_PROJECT
-$ python main.py
+$ python main_t.py
 ```
 
 <br/>

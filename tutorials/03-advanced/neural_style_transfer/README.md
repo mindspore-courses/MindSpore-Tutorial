@@ -22,7 +22,7 @@ As in computing the content loss, we forward propagate the style image and the t
 
 ```bash
 $ pip install -r requirements.txt
-$ python main.py --content='png/content.png' --style='png/style.png'
+$ python main_t.py --content='png/content.png' --style='png/style.png'
 ```
 
 <br>

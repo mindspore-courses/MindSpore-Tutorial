@@ -15,11 +15,11 @@ $ pip install -r requirements.txt
 
 #### 2. Train the model
 ```bash
-$ python main.py
+$ python main_t.py
 ```
 
 #### 3. Open the TensorBoard
 To run the TensorBoard, open a new terminal and run the command below. Then, open http://localhost:6006/ on your web browser.
 ```bash
-$ tensorboard --logdir='./logs' --port=6006
+$ mindinsight --logdir='./logs' --port=6006
 ```

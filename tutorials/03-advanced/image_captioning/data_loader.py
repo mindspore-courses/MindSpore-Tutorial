@@ -11,7 +11,7 @@ from build_vocab import Vocabulary
 from pycocotools.coco import COCO
 
 
-class CocoDataset(mindspore.dataset.Dataset):
+class CocoDataset:
     """COCO Custom Dataset compatible with torch.utils.data.DataLoader."""
 
     def __init__(self, root, json, vocab, transform=None):
@@ -23,7 +23,7 @@ class CocoDataset(mindspore.dataset.Dataset):
             vocab: vocabulary wrapper.
             transform: image transformer.
         """
-        super(CocoDataset, self).__init__()
+        # super(CocoDataset, self).__init__()
         self.root = root
         self.coco = COCO(json)
         self.ids = list(self.coco.anns.keys())
@@ -41,7 +41,10 @@ class CocoDataset(mindspore.dataset.Dataset):
 
         image = Image.open(os.path.join(self.root, path)).convert('RGB')
         if self.transform is not None:
-            image = self.transform(image)
+            image = self.transform[0](image)
+            image = self.transform[1](image)
+            image = self.transform[2](image)
+            image = self.transform[3](image)
 
         # Convert caption (string) to word ids.
         tokens = nltk.tokenize.word_tokenize(str(caption).lower())
@@ -73,7 +76,7 @@ def collate_fn(data):
         lengths: list; valid length for each padded caption.
     """
     # Sort a data list by caption length (descending order).
-    data.sort(key=lambda x: len(x[1]), reverse=True)
+    # data.sort(key=lambda x: len(x[1]), reverse=True)
     images, captions = zip(*data)
 
     # Merge images (from tuple of 3D tensor to 4D tensor).
@@ -103,7 +106,8 @@ def get_dataset(root, json, vocab, transform, batch_size, shuffle, python_multip
     # lengths: a list indicating valid length for each caption. length is (batch_size).
     data_loader = mindspore.dataset.GeneratorDataset(source=coco,
                                                      shuffle=shuffle,
-                                                     python_multiprocessing=python_multiprocessing)\
+                                                     python_multiprocessing=python_multiprocessing,
+                                                     column_names=['images', 'captions'])\
         .apply(collate_fn).batch(batch_size)
     return data_loader
 

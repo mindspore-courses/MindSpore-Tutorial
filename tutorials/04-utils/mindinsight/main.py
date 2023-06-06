@@ -6,11 +6,10 @@ from urllib import request
 
 import mindspore
 import numpy as np
-from mindspore import nn, ops
+from mindspore import nn, ops, SummaryRecord
 from mindspore.common.initializer import HeUniform
 from mindspore.dataset.vision import transforms
 import mindspore.common.dtype as mstype
-from logger import Logger
 
 input_size = 784
 hidden_size = 500
@@ -74,8 +73,6 @@ class NeuralNet(nn.Cell):
 
 model = NeuralNet(input_size, hidden_size, num_classes)
 
-logger = Logger('./logs')
-
 # 损失函数和优化器
 criterion = nn.CrossEntropyLoss()
 optimizer = nn.optim.Adam(model.trainable_params(), learning_rate)
@@ -91,41 +88,58 @@ def forward(images, labels):
 # 求梯度
 grad_fn = ops.value_and_grad(forward, None, optimizer.trainable_params, has_aux=True)
 
-# 训练模型
-for epoch in range(num_epochs):
-    for i, (image, label) in enumerate(train_dataset.create_tuple_iterator()):
-        total_step = train_dataset.get_dataset_size()
-        model.set_train()
-        image = image.view(image.shape[0], -1)
-        label = mindspore.Tensor(label, mstype.int32)
 
-        (loss, output), grads = grad_fn(image, label)
-        optimizer(grads)
+def main():
+    # 训练模型
+    with SummaryRecord('./summary', network=model) as summary_record:
+        for epoch in range(num_epochs):
+            for i, (image, label) in enumerate(train_dataset.create_tuple_iterator()):
+                total_step = train_dataset.get_dataset_size()
+                model.set_train()
+                image = image.view(image.shape[0], -1)
+                label = mindspore.Tensor(label, mstype.int32)
 
-        _, argmax = ops.max(output, 1)
-        accuracy = (label == argmax.squeeze()).float().asnumpy().mean()
-        if (i + 1) % 100 == 0:
-            print('Step [{}/{}], Loss: {:.4f}, Acc: {:.2f}'
-                  .format(i + 1, total_step, loss.asnumpy().item(), accuracy.asnumpy().item()))
+                (loss, output), grads = grad_fn(image, label)
+                optimizer(grads)
 
-        # ================================================================== #
-        #                        Tensorboard 日志                            #
-        # ================================================================== #
+                _, argmax = ops.max(output, 1)
+                accuracy = (label == argmax.squeeze()).float().asnumpy().mean()
+                if (i + 1) % 100 == 0:
+                    print('Step [{}/{}], Loss: {:.4f}, Acc: {:.2f}'
+                          .format(i + 1, total_step, loss.asnumpy().item(), accuracy.item()))
+                    summary_record.add_value('scalar', 'loss', loss)
+                    for tag, value in model.parameters_and_names():
+                        tag = tag.replace('.', '/')
+                        summary_record.add_value('histogram', tag, value.data)
+                    print(image.view(-1, 28, 28)[0].shape)
+                    summary_record.record(epoch * 600 + i)
 
-        # 1. Log scalar values (scalar summary)
-        info = {'loss': loss.item(), 'accuracy': accuracy.item()}
 
-        for tag, value in info.items():
-            logger.scalar_summary(tag, value, i + 1)
+if __name__ == '__main__':
+    main()
 
-        # 2. Log values and gradients of the parameters (histogram summary)
-        for tag, value in model.named_parameters():
-            tag = tag.replace('.', '/')
-            logger.histo_summary(tag, value.data.cpu().numpy(), i + 1)
-            logger.histo_summary(tag + '/grad', value.grad.data.cpu().numpy(), i + 1)
-
-        # 3. Log training images (image summary)
-        info = {'images': image.view(-1, 28, 28)[:10].cpu().numpy()}
-
-        for tag, image in info.items():
-            logger.image_summary(tag, image, i + 1)
+    # # ================================================================== #
+    # #                         MindInsight 日志                            #
+    # # ================================================================== #
+    #
+    # # 1. Log scalar values (scalar summary)
+    # summary_collector = mindspore.SummaryCollector(summary_dir='./')
+    # info = {'loss': loss.item(), 'accuracy': accuracy.asnumpy().item()}
+    # scalar_summary = ops.ScalarSummary()
+    # histo_summary = ops.HistogramSummary()
+    # image_summary = ops.ImageSummary()
+    # for tag, value in info.items():
+    #     scalar_summary(tag, value)
+    #
+    # # 2. Log values and gradients of the parameters (histogram summary)
+    # for tag, value in model.parameters_and_names():
+    #     tag = tag.replace('.', '/')
+    #     histo_summary(tag, value.data.asnumpy())
+    #     value = mindspore.Parameter(value)
+    #     histo_summary(tag + '/grad', value.grad.data.asnumpy())
+    #
+    # # 3. Log training images (image summary)
+    # info = {'images': image.view(-1, 28, 28)[:10].asnumpy()}
+    #
+    # for tag, image in info.items():
+    #     image_summary(tag, image)
