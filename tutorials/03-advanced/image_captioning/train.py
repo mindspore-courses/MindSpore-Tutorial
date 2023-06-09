@@ -1,22 +1,25 @@
 import argparse
+import json
 import os
 import pickle
 
 import mindspore.dataset
 import numpy as np
-from mindspore import nn, ops
+from mindspore import nn, ops, Tensor
 import mindspore.dataset.vision.py_transforms as pvision
 from data_loader import get_dataset
 from model import EncoderCNN, DecoderRNN
 from build_vocab import Vocabulary
+from dataset import create_dataset
+import mindspore.common.dtype as mstype
 
 
-def forward(images, captions, lengths, encoder, decoder, criterion):
-    features = encoder(images)
-    outputs = decoder(features, captions, lengths)
-    loss = criterion(outputs, captions)
-
-    return loss
+# def forward(images, captions, lengths):
+#     features = encoder(images)
+#     outputs = decoder(features, captions, lengths)
+#     loss = criterion(outputs, captions)
+#
+#     return loss
 
 
 def main(args):
@@ -34,30 +37,37 @@ def main(args):
 
     # Load vocabulary wrapper
     with open(args.vocab_path, 'rb') as f:
-        vocab = pickle.load(f)
-    dataset = get_dataset(args.image_dir, args.caption_path, vocab,
-                          transform, args.batch_size,
-                          shuffle=True, python_multiprocessing=True)
+        vocab = json.load(f)
+
+    dataset = create_dataset(data_path=args.image_dir, crop_size=args.crop_size, batch_size=128)
 
     encoder = EncoderCNN(args.embed_size)
     decoder = DecoderRNN(args.embed_size, args.hidden_size, len(vocab), args.num_layers)
 
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(ignore_index=vocab['<pad>'])
     cell_list = nn.CellList()
     cell_list.append(decoder)
     cell_list.append(encoder)
     cell_list.append(encoder.bn)
-    # o_params = list(decoder.trainable_params()) + list(encoder.trainable_params()) + list(encoder.bn.trainable_params())
-    # o_params[5].name = 'linear1_weight'
-    # o_params[6].name = 'linear1_bias'
     optimizer = nn.optim.Adam(cell_list.trainable_params(), args.learning_rate)
+
+    def forward(images, captions, lengths):
+        features = encoder(images)
+        outputs = decoder(features, captions, lengths)
+        # captions = Tensor(captions, dtype=mstype.float32)
+        outputs = outputs.swapaxes(1, 2)
+        loss = criterion(outputs, captions)
+        return loss
+
     grad_fn = ops.value_and_grad(forward, None, optimizer.parameters)
     total_step = dataset.get_dataset_size()
     encoder.set_train()
     decoder.set_train()
+
     for epoch in range(args.num_epochs):
-        for i, (images, captions, lengths) in enumerate(dataset.create_dict_iterator()):
-            loss, grads = grad_fn(images, captions, lengths, encoder, decoder, criterion)
+        for i, (images, captions, lengths) in enumerate(dataset.create_tuple_iterator()):
+            # captions = Tensor(captions, dtype=mstype.float32)
+            loss, grads = grad_fn(images, captions, lengths)
             optimizer(grads)
 
             # Print log info
@@ -77,13 +87,15 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_path', type=str, default='models/', help='path for saving trained models')
-    parser.add_argument('--crop_size', type=int, default=224, help='size for randomly cropping images')
-    parser.add_argument('--vocab_path', type=str, default='../../../data/COCO/vocab.pkl',
+    parser.add_argument('--crop_size', type=int, default=256, help='size for randomly cropping images')
+    parser.add_argument('--vocab_path', type=str,
+                        default='../../../data/COCO/mindrecord/WORDMAP_coco_5_cap_per_img_5_min_word_freq.json',
                         help='path for vocabulary wrapper')
-    parser.add_argument('--image_dir', type=str, default='../../../data/COCO/resized2014',
+    parser.add_argument('--image_dir', type=str,
+                        default='../../../data/COCO/mindrecord/TRAIN_IMAGES_coco_5_cap_per_img_5_min_word_freq.mindrecord',
                         help='directory for resized images')
-    parser.add_argument('--caption_path', type=str, default='../../../data/COCO/annotations/captions_train2014.json',
-                        help='path for train annotation json file')
+    # parser.add_argument('--caption_path', type=str, default='../../../data/COCO/annotations/captions_train2014.json',
+    #                     help='path for train annotation json file')
     parser.add_argument('--log_step', type=int, default=10, help='step size for prining log info')
     parser.add_argument('--save_step', type=int, default=1000, help='step size for saving trained models')
 

@@ -1,4 +1,5 @@
 import argparse
+import json
 import pickle
 
 import matplotlib.pyplot as plt
@@ -29,8 +30,8 @@ def main(args):
                              (0.229, 0.224, 0.225))])
 
     # Load vocabulary wrapper
-    with open(args.vocab_path, 'rb') as f:
-        vocab = pickle.load(f)
+    with open(args.json_path, 'rb') as f:
+        vocab = json.load(f)
 
     # Build models
     encoder = EncoderCNN(args.embed_size).eval()  # eval mode (batchnorm uses moving mean/variance)
@@ -71,7 +72,7 @@ if __name__ == '__main__':
                         help='path for trained encoder')
     parser.add_argument('--decoder_path', type=str, default='models/decoder-5-3000.pkl',
                         help='path for trained decoder')
-    parser.add_argument('--vocab_path', type=str, default='data/vocab.pkl', help='path for vocabulary wrapper')
+    parser.add_argument('--json_path', type=str, default='../../../data/COCO/mindrecord/WORDMAP_coco_5_cap_per_img_5_min_word_freq.json')
 
     # Model parameters (should be same as paramters in train.py)
     parser.add_argument('--embed_size', type=int, default=256, help='dimension of word embedding vectors')
