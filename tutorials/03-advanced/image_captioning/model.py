@@ -45,7 +45,7 @@ class DecoderRNN(nn.Cell):
         for i in range(self.max_seq_length):
             hiddens, states = self.lstm(inputs, states)
             outputs = self.linear(hiddens.squeeze(1))
-            _, predicted = outputs.max(1)
+            _, predicted = ops.max(outputs,1)
             sampled_ids.append(predicted)
             inputs = self.embed(predicted)
             inputs = inputs.unsqueeze(1)

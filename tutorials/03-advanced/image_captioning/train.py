@@ -27,13 +27,13 @@ def main(args):
     if not os.path.exists(args.model_path):
         os.makedirs(args.model_path)
 
-    # Image preprocessing, normalization for the pretrained resnet
-    transform = [
-        pvision.RandomCrop(args.crop_size),
-        pvision.RandomHorizontalFlip(),
-        pvision.ToTensor(),
-        pvision.Normalize((0.485, 0.456, 0.406),
-                          (0.229, 0.224, 0.225))]
+    # # Image preprocessing, normalization for the pretrained resnet
+    # transform = [
+    #     pvision.RandomCrop(args.crop_size),
+    #     pvision.RandomHorizontalFlip(),
+    #     pvision.ToTensor(),
+    #     pvision.Normalize((0.485, 0.456, 0.406),
+    #                       (0.229, 0.224, 0.225))]
 
     # Load vocabulary wrapper
     with open(args.vocab_path, 'rb') as f:
