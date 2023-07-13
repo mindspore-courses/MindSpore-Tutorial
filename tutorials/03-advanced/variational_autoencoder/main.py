@@ -62,13 +62,13 @@ dataset = mindspore.dataset.MnistDataset(
 
 # VAE模型
 class VAE(nn.Cell):
-    def __init__(self, image_size=784, h_dim=400, z_dim=20):
+    def __init__(self, img_size=784, h_dim=400, z_dim=20):
         super(VAE, self).__init__()
-        self.fc1 = nn.Dense(image_size, h_dim, weight_init=HeUniform(math.sqrt(5)))
+        self.fc1 = nn.Dense(img_size, h_dim, weight_init=HeUniform(math.sqrt(5)))
         self.fc2 = nn.Dense(h_dim, z_dim, weight_init=HeUniform(math.sqrt(5)))
         self.fc3 = nn.Dense(h_dim, z_dim, weight_init=HeUniform(math.sqrt(5)))
         self.fc4 = nn.Dense(z_dim, h_dim, weight_init=HeUniform(math.sqrt(5)))
-        self.fc5 = nn.Dense(h_dim, image_size, weight_init=HeUniform(math.sqrt(5)))
+        self.fc5 = nn.Dense(h_dim, img_size, weight_init=HeUniform(math.sqrt(5)))
 
     def encode(self, x):
         h = ops.relu(self.fc1(x))

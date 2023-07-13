@@ -24,7 +24,7 @@
 
 #### 4. Utilities
 
-* [TensorBoard in MindSpore](https://github.com/rev0cat/MindSpore-Tutorial/blob/master/tutorials/04-utils/tensorboard)
+* [MindInsight in MindSpore](https://github.com/rev0cat/MindSpore-Tutorial/blob/master/tutorials/04-utils/mindinsight)
 
 <br/>
 
@@ -33,7 +33,7 @@
 ```bash
 $ git clone https://github.com/rev0cat/MindSpore-Tutorial.git
 $ cd MindSpore-Tutorial/tutorials/PATH_TO_PROJECT
-$ python main_t.py
+$ python main.py
 ```
 
 <br/>

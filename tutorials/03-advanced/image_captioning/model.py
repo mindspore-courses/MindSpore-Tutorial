@@ -1,7 +1,7 @@
 import math
 
 import mindspore
-import mindspore.nn as nn
+from mindspore import nn
 import mindcv.models as models
 from mindspore import ops, Tensor
 from mindspore.common.initializer import HeUniform
@@ -13,7 +13,8 @@ class EncoderCNN(nn.Cell):
         resnet = models.resnet152(pretrained=True)
         modules = list(resnet.cells())[:-1]
         self.resnet = nn.SequentialCell(*modules)
-        self.linear = nn.Dense(resnet.classifier.in_channels, embed_size, weight_init=HeUniform(math.sqrt(5)))
+        self.linear = nn.Dense(resnet.classifier.in_channels,
+                               embed_size, weight_init=HeUniform(math.sqrt(5)))
         self.bn = nn.BatchNorm1d(embed_size, momentum=0.01)
 
     def construct(self, images):
