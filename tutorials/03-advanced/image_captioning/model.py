@@ -25,6 +25,7 @@ class EncoderCNN(nn.Cell):
         return features
 
 
+
 class DecoderRNN(nn.Cell):
     def __init__(self, embed_size, hidden_size, vocab_size, num_layers, max_seq_length=20):
         super(DecoderRNN, self).__init__()
@@ -46,7 +47,7 @@ class DecoderRNN(nn.Cell):
         for i in range(self.max_seq_length):
             hiddens, states = self.lstm(inputs, states)
             outputs = self.linear(hiddens.squeeze(1))
-            _, predicted = ops.max(outputs,1)
+            _, predicted = ops.max(outputs, 1)
             sampled_ids.append(predicted)
             inputs = self.embed(predicted)
             inputs = inputs.unsqueeze(1)

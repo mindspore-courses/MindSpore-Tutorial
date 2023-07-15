@@ -7,7 +7,8 @@ import mindspore.dataset
 import numpy as np
 from mindspore import nn, ops, Tensor
 import mindspore.dataset.vision.py_transforms as pvision
-from data_loader import get_dataset
+from mindspore.ops import dtype
+
 from model import EncoderCNN, DecoderRNN
 from build_vocab import Vocabulary
 from dataset import create_dataset
@@ -43,19 +44,25 @@ def main(args):
 
     encoder = EncoderCNN(args.embed_size)
     decoder = DecoderRNN(args.embed_size, args.hidden_size, len(vocab), args.num_layers)
+    encoder.update_parameters_name("encoder")
+    decoder.update_parameters_name("decoder")
 
     criterion = nn.CrossEntropyLoss(ignore_index=vocab['<pad>'])
-    cell_list = nn.CellList()
-    cell_list.append(decoder)
-    cell_list.append(encoder)
-    cell_list.append(encoder.bn)
-    optimizer = nn.optim.Adam(cell_list.trainable_params(), args.learning_rate)
+    encoder.fine_tune(False)
+
+    params = list(decoder.trainable_params()) + list(encoder.linear.trainable_params()) + list(
+        encoder.bn.trainable_params())
+    optimizer = nn.optim.Adam(params, args.learning_rate)
 
     def forward(images, captions, lengths):
         features = encoder(images)
         outputs = decoder(features, captions, lengths)
         # captions = Tensor(captions, dtype=mstype.float32)
         outputs = outputs.swapaxes(1, 2)
+        print("output")
+        print(outputs)
+        print("cap")
+        print(captions)
         loss = criterion(outputs, captions)
         return loss
 
@@ -67,7 +74,11 @@ def main(args):
     for epoch in range(args.num_epochs):
         for i, (images, captions, lengths) in enumerate(dataset.create_tuple_iterator()):
             # captions = Tensor(captions, dtype=mstype.float32)
-            loss, grads = grad_fn(images, captions, lengths)
+            max_len = max(lengths).asnumpy().item()
+            new_cap = ops.zeros(size=(ops.shape(captions)[0], max_len), dtype=mstype.int32)
+            for i, caption in enumerate(captions):
+                new_cap[i] = caption[:max_len]
+            loss, grads = grad_fn(images, new_cap, lengths)
             optimizer(grads)
 
             # Print log info
@@ -105,7 +116,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_layers', type=int, default=1, help='number of layers in lstm')
 
     parser.add_argument('--num_epochs', type=int, default=5)
-    parser.add_argument('--batch_size', type=int, default=128)
+    parser.add_argument('--batch_size', type=int, default=2)
     parser.add_argument('--num_workers', type=int, default=2)
     parser.add_argument('--learning_rate', type=float, default=0.001)
     args = parser.parse_args()

@@ -77,9 +77,9 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--image', type=str, required=True, help='input image for generating caption')
-    parser.add_argument('--encoder_path', type=str, default='models/encoder-5-800.ckpt',
+    parser.add_argument('--encoder_path', type=str, default='models/encoder-1-100.ckpt',
                         help='path for trained encoder')
-    parser.add_argument('--decoder_path', type=str, default='models/decoder-5-800.ckpt',
+    parser.add_argument('--decoder_path', type=str, default='models/decoder-1-100.ckpt',
                         help='path for trained decoder')
     parser.add_argument('--json_path', type=str,
                         default='../../../data/COCO/mindrecord/WORDMAP_coco_5_cap_per_img_5_min_word_freq.json')

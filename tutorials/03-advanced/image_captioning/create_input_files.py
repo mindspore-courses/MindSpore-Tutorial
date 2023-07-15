@@ -166,9 +166,9 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='create image captioning dataset')
     parser.add_argument('--dataset', type=str, default='coco')
-    parser.add_argument('--json_path', type=str, default='../../../data/COCO/dataset_coco.json')
-    parser.add_argument('--image_folder', type=str, default='../../../data/COCO')
-    parser.add_argument('--output_folder', type=str, default='../../../data/COCO/mindrecord')
+    parser.add_argument('--json_path', type=str, default='../../data/dataset_coco.json')
+    parser.add_argument('--image_folder', type=str, default='../../data')
+    parser.add_argument('--output_folder', type=str, default='../../data/mindrecord')
     parser.add_argument('--captions_per_image', type=int, default=5)
     parser.add_argument('--min_word_freq', type=int, default=5)
     parser.add_argument('--max_len', type=int, default=100)
