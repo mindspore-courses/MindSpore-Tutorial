@@ -52,7 +52,7 @@ def main(args):
 
     params = list(decoder.trainable_params()) + list(encoder.linear.trainable_params()) + list(
         encoder.bn.trainable_params())
-    optimizer = nn.optim.Adam(params, args.learning_rate)
+    optimizer = nn.optim.Adam(params, args.LEARNING_RATE)
 
     def forward(images, captions, lengths):
         features = encoder(images)
@@ -71,7 +71,7 @@ def main(args):
     encoder.set_train()
     decoder.set_train()
 
-    for epoch in range(args.num_epochs):
+    for epoch in range(args.NUM_EPOCHS):
         for i, (images, captions, lengths) in enumerate(dataset.create_tuple_iterator()):
             # captions = Tensor(captions, dtype=mstype.float32)
             max_len = max(lengths).asnumpy().item()
@@ -84,7 +84,7 @@ def main(args):
             # Print log info
             if i % args.log_step == 0:
                 print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Perplexity: {:5.4f}'
-                      .format(epoch, args.num_epochs, i, total_step, loss.asnumpy().item(),
+                      .format(epoch, args.NUM_EPOCHS, i, total_step, loss.asnumpy().item(),
                               np.exp(loss.asnumpy().item())))
 
                 # Save the model checkpoints
@@ -115,10 +115,10 @@ if __name__ == '__main__':
     parser.add_argument('--hidden_size', type=int, default=512, help='dimension of lstm hidden states')
     parser.add_argument('--num_layers', type=int, default=1, help='number of layers in lstm')
 
-    parser.add_argument('--num_epochs', type=int, default=5)
+    parser.add_argument('--NUM_EPOCHS', type=int, default=5)
     parser.add_argument('--batch_size', type=int, default=2)
     parser.add_argument('--num_workers', type=int, default=2)
-    parser.add_argument('--learning_rate', type=float, default=0.001)
+    parser.add_argument('--LEARNING_RATE', type=float, default=0.001)
     args = parser.parse_args()
     print(args)
     main(args)
