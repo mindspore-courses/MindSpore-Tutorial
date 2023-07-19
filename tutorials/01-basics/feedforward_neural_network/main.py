@@ -13,7 +13,7 @@ from mindspore.dataset.vision import transforms
 import mindspore.common.dtype as mstype
 
 INPUT_SIZE = 784
-hidden_size = 500
+HIDDEN_SIZE = 500
 num_classes = 10
 num_epochs = 5
 batch_size = 100
