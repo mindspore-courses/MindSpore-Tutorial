@@ -31,7 +31,7 @@
 ## Getting Started
 
 ```bash
-$ git clone https://github.com/rev0cat/MindSpore-Tutorial.git
+$ git clone https://github.com/mindspore-courses/MindSpore-Tutorial.git
 $ cd MindSpore-Tutorial/tutorials/PATH_TO_PROJECT
 $ python main.py
 ```
