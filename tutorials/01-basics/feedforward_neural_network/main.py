@@ -1,4 +1,4 @@
-# 超参数
+"""前馈神经网络"""
 import gzip
 import math
 import os
@@ -12,6 +12,7 @@ from mindspore.common.initializer import HeUniform
 from mindspore.dataset.vision import transforms
 import mindspore.common.dtype as mstype
 
+# 超参数
 INPUT_SIZE = 784
 HIDDEN_SIZE = 500
 NUM_CLASSES = 10
@@ -56,8 +57,9 @@ test_dataset = mindspore.dataset.MnistDataset(
 ).map(operations=image_transforms, input_columns="image").batch(batch_size=BATCH_SIZE)
 
 
-# NeuralNet 带一个隐藏层的全连接神经网络
 class NeuralNet(nn.Cell):
+    """带一个隐藏层的全连接神经网络"""
+
     def __init__(self, input_size, hidden_size, num_classes):
         super(NeuralNet, self).__init__()
         self.fc1 = nn.Dense(input_size, hidden_size, weight_init=HeUniform(math.sqrt(5)))
@@ -71,7 +73,7 @@ class NeuralNet(nn.Cell):
         return out
 
 
-model = NeuralNet(INPUT_SIZE, hidden_size, NUM_CLASSES)
+model = NeuralNet(INPUT_SIZE, HIDDEN_SIZE, NUM_CLASSES)
 
 # 损失函数和优化器
 criterion = nn.CrossEntropyLoss()
