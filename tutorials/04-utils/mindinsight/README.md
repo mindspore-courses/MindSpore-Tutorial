@@ -8,18 +8,15 @@ MindSpore Insight是一款可视化调试调优工具，帮助用户获得更优
 
 ## Usage 
 
-#### 1. Install the dependencies
-```bash
-$ pip install -r requirements.txt
-```
+#### 1. 安装MindInsight
 
-#### 2. Train the model
+#### 2. 训练模型
 ```bash
 $ python main.py
 ```
 
-#### 3. Open the MindInsight
-To run the TensorBoard, open a new terminal and run the command below. Then, open http://localhost:6006/ on your web browser.
+#### 3. 打开MindInsight
+运行以下命令，然后打开 http://localhost:6006/
 ```bash
 $ mindinsight --logdir='./logs' --port=6006
 ```
