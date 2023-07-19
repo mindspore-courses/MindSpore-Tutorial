@@ -1,49 +1,30 @@
+"""看图说话"""
 import argparse
 import json
 import os
-import pickle
 
+import mindspore.common.dtype as mstype
 import mindspore.dataset
 import numpy as np
-from mindspore import nn, ops, Tensor
-import mindspore.dataset.vision.py_transforms as pvision
-from mindspore.ops import dtype
+from mindspore import nn, ops
 
-from model import EncoderCNN, DecoderRNN
-from build_vocab import Vocabulary
 from dataset import create_dataset
-import mindspore.common.dtype as mstype
+from model import EncoderCNN, DecoderRNN
 
 
-# def forward(images, captions, lengths):
-#     features = encoder(images)
-#     outputs = decoder(features, captions, lengths)
-#     loss = criterion(outputs, captions)
-#
-#     return loss
+def main(_args):
+    """主函数"""
 
-
-def main(args):
-    # Create model directory
     if not os.path.exists(args.model_path):
         os.makedirs(args.model_path)
 
-    # # Image preprocessing, normalization for the pretrained resnet
-    # transform = [
-    #     pvision.RandomCrop(args.crop_size),
-    #     pvision.RandomHorizontalFlip(),
-    #     pvision.ToTensor(),
-    #     pvision.Normalize((0.485, 0.456, 0.406),
-    #                       (0.229, 0.224, 0.225))]
-
-    # Load vocabulary wrapper
     with open(args.vocab_path, 'rb') as f:
         vocab = json.load(f)
 
     dataset = create_dataset(data_path=args.image_dir, crop_size=args.crop_size, batch_size=128)
 
-    encoder = EncoderCNN(args.embed_size)
-    decoder = DecoderRNN(args.embed_size, args.hidden_size, len(vocab), args.num_layers)
+    encoder = EncoderCNN(args.EMBED_SIZE)
+    decoder = DecoderRNN(args.EMBED_SIZE, args.HIDDEN_SIZE, len(vocab), args.NUM_LAYERS)
     encoder.update_parameters_name("encoder")
     decoder.update_parameters_name("decoder")
 
@@ -51,7 +32,7 @@ def main(args):
     encoder.fine_tune(False)
 
     params = list(decoder.trainable_params()) + list(encoder.linear.trainable_params()) + list(
-        encoder.bn.trainable_params())
+        encoder.batch_norm.trainable_params())
     optimizer = nn.optim.Adam(params, args.LEARNING_RATE)
 
     def forward(images, captions, lengths):
@@ -83,16 +64,16 @@ def main(args):
 
             # Print log info
             if i % args.log_step == 0:
-                print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Perplexity: {:5.4f}'
-                      .format(epoch, args.NUM_EPOCHS, i, total_step, loss.asnumpy().item(),
-                              np.exp(loss.asnumpy().item())))
+                print(f'Epoch [{epoch}/{ args.NUM_EPOCHS}], Step [{i}/{total_step}], '
+                      f'Loss: {loss.asnumpy().item():.4f}, '
+                      f'Perplexity: {np.exp(loss.asnumpy().item()):5.4f}')
 
                 # Save the model checkpoints
             if (i + 1) % args.save_step == 0:
                 mindspore.save_checkpoint(decoder, os.path.join(
-                    args.model_path, 'decoder-{}-{}.ckpt'.format(epoch + 1, i + 1)))
+                    args.model_path, f'decoder-{epoch + 1}-{i + 1}.ckpt'))
                 mindspore.save_checkpoint(encoder, os.path.join(
-                    args.model_path, 'encoder-{}-{}.ckpt'.format(epoch + 1, i + 1)))
+                    args.model_path, f'encoder-{epoch + 1}-{i + 1}.ckpt'))
 
 
 if __name__ == '__main__':

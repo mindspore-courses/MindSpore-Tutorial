@@ -1,4 +1,0 @@
-mindspore==2.0.0
-mindcv==0.2.2
-mindinsight==2.0.0
-pylint==2.17.4

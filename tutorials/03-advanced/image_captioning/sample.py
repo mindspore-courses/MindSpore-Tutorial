@@ -1,12 +1,12 @@
+"""测试"""
 import argparse
 import json
-import pickle
 
 import matplotlib.pyplot as plt
 import mindspore
 import numpy as np
 from PIL import Image
-from mindspore import ops, Tensor
+from mindspore import Tensor
 from mindspore.dataset.transforms import Compose
 from mindspore.dataset.vision import transforms
 
@@ -14,6 +14,7 @@ from model import EncoderCNN, DecoderRNN
 
 
 def load_image(image_path, transform=None):
+    """加载图片"""
     image = Image.open(image_path).convert('RGB')
     image = image.resize([256, 256], Image.LANCZOS)
 
@@ -25,7 +26,8 @@ def load_image(image_path, transform=None):
     return image
 
 
-def main(args):
+def main(_args):
+    """主函数"""
     # Image preprocessing
     transform = Compose([
         transforms.ToTensor(),
@@ -33,22 +35,22 @@ def main(args):
                              (0.229, 0.224, 0.225), is_hwc=False)])
 
     # Load vocabulary wrapper
-    with open(args.json_path, 'rb') as f:
+    with open(_args.json_path, 'rb') as f:
         vocab = json.load(f)
 
     # Build models
-    encoder = EncoderCNN(args.embed_size)  # eval mode (batchnorm uses moving mean/variance)
-    decoder = DecoderRNN(args.embed_size, args.hidden_size, len(vocab), args.num_layers)
+    encoder = EncoderCNN(_args.EMBED_SIZE)  # eval mode (batchnorm uses moving mean/variance)
+    decoder = DecoderRNN(_args.EMBED_SIZE, _args.HIDDEN_SIZE, len(vocab), _args.NUM_LAYERS)
 
     encoder.set_train(False)
     decoder.set_train(False)
 
     # Load the trained model parameters
-    mindspore.load_param_into_net(encoder, mindspore.load_checkpoint(args.encoder_path))
-    mindspore.load_param_into_net(decoder, mindspore.load_checkpoint(args.decoder_path))
+    mindspore.load_param_into_net(encoder, mindspore.load_checkpoint(_args.encoder_path))
+    mindspore.load_param_into_net(decoder, mindspore.load_checkpoint(_args.decoder_path))
 
     # Prepare an image
-    image = load_image(args.image, transform)
+    image = load_image(_args.image, transform)
     image_tensor = mindspore.Tensor(image)
 
     # Generate an caption from the image
@@ -71,8 +73,9 @@ def main(args):
 
     # Print out the image and the generated caption
     print(sentence)
-    image = Image.open(args.image)
+    image = Image.open(_args.image)
     plt.imshow(np.asarray(image))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

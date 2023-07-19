@@ -61,7 +61,7 @@ class NeuralNet(nn.Cell):
     """带一个隐藏层的全连接神经网络"""
 
     def __init__(self, input_size, hidden_size, num_classes):
-        super(NeuralNet, self).__init__()
+        super().__init__()
         self.fc1 = nn.Dense(input_size, hidden_size, weight_init=HeUniform(math.sqrt(5)))
         self.relu = nn.ReLU()
         self.fc2 = nn.Dense(hidden_size, num_classes, weight_init=HeUniform(math.sqrt(5)))
@@ -92,24 +92,23 @@ for epoch in range(NUM_EPOCHS):
         label = mindspore.Tensor(label, mstype.int32)
         loss = train_model(image, label)
         if (i + 1) % 100 == 0:
-            print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
-                  .format(epoch + 1, NUM_EPOCHS, i + 1, total_step, loss.asnumpy().item()))
+            print(f'Epoch [{epoch + 1}/{NUM_EPOCHS}], Step [{i + 1}/{total_step}], Loss: {loss.asnumpy().item():.4f}')
 
 model.set_train(False)
 
 # 测试模型
-correct = 0
-total = 0
+CORRECT = 0
+TOTAL = 0
 for image, label in test_dataset.create_tuple_iterator():
     label = mindspore.Tensor(label, mstype.int32)
     image = ops.reshape(image, (-1, 28 * 28))
     outputs = model(image)
     _, predicted = ops.max(outputs.value(), 1)
-    total += label.shape[0]
-    correct += (predicted == label).sum().asnumpy().item()
+    TOTAL += label.shape[0]
+    CORRECT += (predicted == label).sum().asnumpy().item()
 
-print('Test Accuracy of the model on the 10000 test images: {:.2f} %'.format(100 * correct / total))
+print(f'Test Accuracy of the model on the 10000 test images: {(100 * CORRECT / TOTAL):.2f} %')
 
 # Save the model checkpoint
-save_path = './model.ckpt'
-mindspore.save_checkpoint(model, save_path)
+SAVE_PATH = './model.ckpt'
+mindspore.save_checkpoint(model, SAVE_PATH)

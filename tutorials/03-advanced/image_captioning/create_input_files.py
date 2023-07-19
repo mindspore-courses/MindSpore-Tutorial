@@ -1,23 +1,25 @@
-import os
+"""创建MindRecord数据集"""
 import argparse
-import numpy as np
 import json
-import pickle
-from tqdm import tqdm
-from imageio.v2 import imread
-from PIL import Image
+import os
 from collections import Counter
 from random import seed, choice, sample
+
+import numpy as np
+from PIL import Image
+from imageio.v2 import imread
 from mindspore.mindrecord import FileWriter
+from tqdm import tqdm
 
 
 def create_input_files(dataset, pickle_path, image_folder, output_folder, captions_per_image, min_word_freq,
                        max_len=100, shard_num=1, write_freq=100):
+    """创建MindRecord数据集"""
     assert dataset in {'coco'}
 
     # 读取词汇表
-    with open(pickle_path, 'r') as p:
-        data = json.load(p)
+    with open(pickle_path, 'r',encoding='UTF-8') as pickle:
+        data = json.load(pickle)
 
     # 读取image与caption
     train_image_paths = []
@@ -58,7 +60,7 @@ def create_input_files(dataset, pickle_path, image_folder, output_folder, captio
 
     print("Create word map")
 
-    words = [w for w in word_freq.keys() if word_freq[w] > min_word_freq]
+    words = [w for w, freq in word_freq.items() if freq > min_word_freq]
     word_map = {k: v + 1 for v, k in enumerate(words)}
     word_map['<unk>'] = len(word_map) + 1
     word_map['<start>'] = len(word_map) + 1
@@ -74,7 +76,7 @@ def create_input_files(dataset, pickle_path, image_folder, output_folder, captio
 
     # Save word map to a JSON
 
-    with open(os.path.join(output_folder, 'WORDMAP_' + base_filename + '.json'), 'w') as j:
+    with open(os.path.join(output_folder, 'WORDMAP_' + base_filename + '.json'), 'w',encoding='UTF-8') as j:
         json.dump(word_map, j)
 
     # Sample captions for each image, save images to HDF5 file, and captions and their lengths to JSON files
@@ -94,7 +96,7 @@ def create_input_files(dataset, pickle_path, image_folder, output_folder, captio
         f = FileWriter(os.path.join(output_folder, split + '_IMAGES_' + base_filename + '.mindrecord'), shard_num,
                        overwrite=True)
         f.add_schema(schema_json)
-        print("\nReading %s images and captions, storing to file...\n" % split)
+        print(f"\nReading {split} images and captions, storing to file...\n")
 
         data = []
         for i, path in enumerate(tqdm(impaths)):
@@ -149,17 +151,18 @@ def create_input_files(dataset, pickle_path, image_folder, output_folder, captio
         f.commit()
 
 
-def main(args):
+def main(_args):
+    """主函数"""
     create_input_files(
-        args.dataset,
-        args.json_path,
-        args.image_folder,
-        args.output_folder,
-        args.captions_per_image,
-        args.min_word_freq,
-        args.max_len,
-        args.shard_num,
-        args.write_freq
+        _args.dataset,
+        _args.json_path,
+        _args.image_folder,
+        _args.output_folder,
+        _args.captions_per_image,
+        _args.min_word_freq,
+        _args.max_len,
+        _args.shard_num,
+        _args.write_freq
     )
 
 

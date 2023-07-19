@@ -1,3 +1,4 @@
+"""深度残差网络"""
 import math
 import os
 import tarfile
@@ -5,35 +6,35 @@ import urllib.request
 
 import mindspore.common.dtype as mstype
 import mindspore.dataset.vision
-import mindspore.dataset.vision.transforms as transforms
-import mindspore.nn as nn
-import mindspore.ops as ops
+from mindspore.dataset.vision import transforms
+from mindspore import nn
+from mindspore import ops
 from mindspore import Tensor
 from mindspore.common.initializer import HeUniform
 
-file_path = '../../../data/CIFAR-10'
+FILE_PATH = '../../../data/CIFAR-10'
 
-if not os.path.exists(file_path):
+if not os.path.exists(FILE_PATH):
     if not os.path.exists('../../../data'):
         os.mkdir('../../../data')
     # 下载CIFAR-10数据集
-    os.mkdir(file_path)
-    url = 'https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz'
-    file_name = 'cifar-10-binary.tar.gz'
-    print("正在从" + url + "下载CIFAR-10数据集...")
-    result = urllib.request.urlretrieve(url, os.path.join(file_path, file_name))
-    with tarfile.open(os.path.join(file_path, file_name), 'r:gz') as tar:
+    os.mkdir(FILE_PATH)
+    URL = 'https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz'
+    FILE_NAME = 'cifar-10-binary.tar.gz'
+    print("正在从" + URL + "下载CIFAR-10数据集...")
+    result = urllib.request.urlretrieve(URL, os.path.join(FILE_PATH, FILE_NAME))
+    with tarfile.open(os.path.join(FILE_PATH, FILE_NAME), 'r:gz') as tar:
         print("正在解压数据集...")
         for member in tar.getmembers():
             if member.name.startswith('cifar-10-batches-bin'):
                 member.name = os.path.basename(member.name)
-                tar.extract(member, path=file_path)
-    os.remove(os.path.join(file_path, file_name))
+                tar.extract(member, path=FILE_PATH)
+    os.remove(os.path.join(FILE_PATH, FILE_NAME))
 
 # 超参数
-num_epochs = 80
-batch_size = 100
-learning_rate = 0.001
+NUM_EPOCHS = 80
+BATCH_SIZE = 100
+LEARNING_RATE = 0.001
 
 # 预处理
 data_transforms = [
@@ -44,32 +45,32 @@ data_transforms = [
 
 # 导入CIFAR-10数据集
 train_dataset = mindspore.dataset.Cifar10Dataset(
-    dataset_dir=file_path,
+    dataset_dir=FILE_PATH,
     usage='train',
     shuffle=True
-).map(operations=data_transforms, input_columns="image").batch(batch_size=batch_size)
+).map(operations=data_transforms, input_columns="image").batch(batch_size=BATCH_SIZE)
 
 test_dataset = mindspore.dataset.Cifar10Dataset(
-    dataset_dir=file_path,
+    dataset_dir=FILE_PATH,
     usage='test',
     shuffle=False
-).map(operations=transforms.ToTensor()).batch(batch_size=batch_size)
+).map(operations=transforms.ToTensor()).batch(batch_size=BATCH_SIZE)
 
 
-# 3x3 convolution
-def Conv3x3(in_channels, out_channels, stride=1):
+def conv3x3(in_channels, out_channels, stride=1):
+    """3x3卷积核"""
     return nn.Conv2d(in_channels, out_channels, kernel_size=3,
                      stride=stride, padding=1, pad_mode='pad')
 
 
-# Residual block
 class ResidualBlock(nn.Cell):
+    """残差块"""
     def __init__(self, in_channels, out_channels, stride=1, downsample=None):
-        super(ResidualBlock, self).__init__()
-        self.conv1 = Conv3x3(in_channels, out_channels, stride)
+        super().__init__()
+        self.conv1 = conv3x3(in_channels, out_channels, stride)
         self.bn1 = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU()
-        self.conv2 = Conv3x3(out_channels, out_channels)
+        self.conv2 = conv3x3(out_channels, out_channels)
         self.bn2 = nn.BatchNorm2d(out_channels)
         self.downsample = downsample
 
@@ -87,43 +88,44 @@ class ResidualBlock(nn.Cell):
         return out
 
 
-# ResNet
 class ResNet(nn.Cell):
+    """残差网络"""
     def __init__(self, block, layers, num_classes=10):
-        super(ResNet, self).__init__()
+        super().__init__()
         self.in_channels = 16
-        self.conv = Conv3x3(3, 16)
-        self.bn = nn.BatchNorm2d(16)
+        self.conv = conv3x3(3, 16)
+        self.batch_norm = nn.BatchNorm2d(16)
         self.relu = nn.ReLU()
         self.layer1 = self.make_layer(block, 16, layers[0])
         self.layer2 = self.make_layer(block, 32, layers[1], 2)
         self.layer3 = self.make_layer(block, 64, layers[2], 2)
         self.avg_pool = nn.AvgPool2d(8)
-        self.fc = nn.Dense(64, num_classes, weight_init=HeUniform(math.sqrt(5)))
+        self.linear = nn.Dense(64, num_classes, weight_init=HeUniform(math.sqrt(5)))
 
     def make_layer(self, block, out_channels, blocks, stride=1):
+        """创建层"""
         downsample = None
         if (stride != 1) or (self.in_channels != out_channels):
             downsample = nn.SequentialCell(
-                Conv3x3(self.in_channels, out_channels, stride),
+                conv3x3(self.in_channels, out_channels, stride),
                 nn.BatchNorm2d(out_channels))
         layers = []
         layers.append(block(self.in_channels, out_channels, stride, downsample))
         self.in_channels = out_channels
-        for i in range(1, blocks):
+        for _ in range(1, blocks):
             layers.append(block(out_channels, out_channels))
         return nn.SequentialCell(*layers)
 
     def construct(self, x):
         out = self.conv(x)
-        out = self.bn(out)
+        out = self.batch_norm(out)
         out = self.relu(out)
         out = self.layer1(out)
         out = self.layer2(out)
         out = self.layer3(out)
         out = self.avg_pool(out)
         out = out.view(ops.shape(out)[0], -1)
-        out = self.fc(out)
+        out = self.linear(out)
         return out
 
 
@@ -131,44 +133,43 @@ model = ResNet(ResidualBlock, [2, 2, 2])
 
 # 定义损失函数和优化器
 criterion = nn.CrossEntropyLoss()
-optimizer = nn.optim.Adam(model.trainable_params(), learning_rate)
+optimizer = nn.optim.Adam(model.trainable_params(), LEARNING_RATE)
 # 绑定损失函数
 train_model = nn.WithLossCell(model, loss_fn=criterion)
 
 train_model = nn.TrainOneStepCell(train_model, optimizer)
 
 # 训练
-curr_lr = learning_rate
-for epoch in range(num_epochs):
-    for i, (image, label) in enumerate(train_dataset.create_tuple_iterator()):
+CURR_LR = LEARNING_RATE
+for epoch in range(NUM_EPOCHS):
+    for j, (image, label) in enumerate(train_dataset.create_tuple_iterator()):
         total_step = train_dataset.get_dataset_size()
         train_model.set_train()
         label = mindspore.Tensor(label, mstype.int32)
         loss = train_model(image, label)
 
-        if (i + 1) % 100 == 0:
-            print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
-                  .format(epoch + 1, num_epochs, i + 1, total_step, loss.asnumpy().item()))
+        if (j + 1) % 100 == 0:
+            print(f'Epoch [{epoch + 1}/{NUM_EPOCHS}], Step [{j + 1}/{total_step}], Loss: {loss.asnumpy().item():.4f}')
 
     # 调整学习率
     if (epoch + 1) % 20 == 0:
-        curr_lr /= 3
-        ops.assign(optimizer.learning_rate, Tensor(curr_lr))
-        print("Current Leaning Rate:{}".format(optimizer.get_lr().asnumpy().item()))
+        CURR_LR /= 3
+        ops.assign(optimizer.learning_rate, Tensor(CURR_LR))
+        print(f"Current Leaning Rate:{optimizer.get_lr().asnumpy().item()}")
 
 # 测试模型
 model.set_train(False)
-correct = 0
-total = 0
+CORRECT = 0
+TOTAL = 0
 for image, label in test_dataset.create_tuple_iterator():
     label = mindspore.Tensor(label, mstype.int32)
     outputs = model(image)
     _, predicted = ops.max(outputs.value(), 1)
-    total += label.shape[0]
-    correct += (predicted == label).sum().asnumpy().item()
+    TOTAL += label.shape[0]
+    CORRECT += (predicted == label).sum().asnumpy().item()
 
-print('Test Accuracy of the model on the 10000 test images: {:.2f} %'.format(100 * correct / total))
+print(f'Test Accuracy of the model on the 10000 test images: {(100 * CORRECT / TOTAL):.2f} %')
 
 # Save the model checkpoint
-save_path = './resnet.ckpt'
-mindspore.save_checkpoint(model, save_path)
+SAVE_PATH = './resnet.ckpt'
+mindspore.save_checkpoint(model, SAVE_PATH)
