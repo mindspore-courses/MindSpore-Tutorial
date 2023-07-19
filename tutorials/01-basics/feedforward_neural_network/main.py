@@ -12,7 +12,7 @@ from mindspore.common.initializer import HeUniform
 from mindspore.dataset.vision import transforms
 import mindspore.common.dtype as mstype
 
-input_size = 784
+INPUT_SIZE = 784
 hidden_size = 500
 num_classes = 10
 num_epochs = 5
@@ -69,7 +69,7 @@ class NeuralNet(nn.Cell):
         out = self.fc2(out)
         return out
 
-model = NeuralNet(input_size,hidden_size,num_classes)
+model = NeuralNet(INPUT_SIZE, hidden_size, num_classes)
 
 # 损失函数和优化器
 criterion = nn.CrossEntropyLoss()
