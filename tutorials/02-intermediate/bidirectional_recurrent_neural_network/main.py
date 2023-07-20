@@ -1,3 +1,4 @@
+"""双向循环神经网络"""
 import gzip
 import math
 import os
@@ -6,11 +7,12 @@ import urllib.request
 
 import mindspore.common.dtype as mstype
 import mindspore.dataset.vision
-import mindspore.dataset.vision.transforms as transforms
-import mindspore.nn as nn
-import mindspore.ops as ops
-import numpy as np
+from mindspore.dataset.vision import transforms
+from mindspore import nn
+from mindspore import ops
 from mindspore.common.initializer import HeUniform
+import numpy as np
+
 
 # 设置超参数
 sequence_length = 28
@@ -59,24 +61,24 @@ test_dataset = mindspore.dataset.MnistDataset(
 ).map(operations=image_transforms, input_columns="image").batch(batch_size=batch_size)
 
 
-# 双向循环神经网络
 class BiRNN(nn.Cell):
-    def __init__(self, input_size, hidden_size, num_layers, num_classes):
-        super(BiRNN, self).__init__()
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
+    """双向循环神经网络"""
+    def __init__(self, _input_size, _hidden_size, _num_layers, _num_classes):
+        super().__init__()
+        self.hidden_size = _hidden_size
+        self.num_layers = _num_layers
         # 双向LSTM
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
-        self.fc = nn.Dense(hidden_size * 2, num_classes, weight_init=HeUniform(math.sqrt(5)))
+        self.lstm = nn.LSTM(_input_size, _hidden_size, _num_layers, batch_first=True, bidirectional=True)
+        self.linear = nn.Dense(_hidden_size * 2, _num_classes, weight_init=HeUniform(math.sqrt(5)))
 
     def construct(self, x):
         # 设置初始状态
-        h0 = ops.zeros(size=(self.num_layers * 2, x.shape[0], self.hidden_size))
-        c0 = ops.zeros(size=(self.num_layers * 2, x.shape[0], self.hidden_size))
+        hidden0 = ops.zeros(size=(self.num_layers * 2, x.shape[0], self.hidden_size))
+        cell0 = ops.zeros(size=(self.num_layers * 2, x.shape[0], self.hidden_size))
 
-        out, _ = self.lstm(x, (h0, c0))
+        out, _ = self.lstm(x, (hidden0, cell0))
 
-        out = self.fc(out[:, -1, :])
+        out = self.linear(out[:, -1, :])
         return out
 
 
@@ -100,8 +102,7 @@ for epoch in range(num_epochs):
         loss = train_model(image, label)
 
         if (i + 1) % 100 == 0:
-            print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
-                  .format(epoch + 1, num_epochs, i + 1, total_step, loss.asnumpy().item()))
+            print(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{total_step}], Loss: {loss.asnumpy().item():.4f}')
 
 # 测试模型
 model.set_train(False)
@@ -115,7 +116,7 @@ for image, label in test_dataset.create_tuple_iterator():
     total += label.shape[0]
     correct += (predicted == label).sum().asnumpy().item()
 
-print('Test Accuracy of the model on the 10000 test images: {:.2f} %'.format(100 * correct / total))
+print(f'Test Accuracy of the model on the 10000 test images: {(100 * correct / total):.2f} %')
 
 # 保存模型
 save_path = './rnn.ckpt'

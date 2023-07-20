@@ -1,3 +1,4 @@
+"""卷积神经网络"""
 import gzip
 import math
 import os
@@ -6,11 +7,12 @@ import urllib.request
 
 import mindspore.common.dtype as mstype
 import mindspore.dataset.vision
-import mindspore.dataset.vision.transforms as transforms
-import mindspore.nn as nn
-import numpy as np
+from mindspore.dataset.vision import transforms
+from mindspore import nn
 from mindspore import ops
 from mindspore.common.initializer import HeUniform
+import numpy as np
+
 
 # Hyper parameters
 num_epochs = 5
@@ -53,8 +55,9 @@ test_dataset = mindspore.dataset.MnistDataset(
 
 
 class CNN(nn.Cell):
-    def __init__(self, num_classes=10):
-        super(CNN, self).__init__()
+    """卷积神经网络"""
+    def __init__(self, _num_classes=10):
+        super().__init__()
         self.layer1 = nn.SequentialCell(
             nn.Conv2d(1, 16, kernel_size=5, stride=1, padding=2, pad_mode='pad', has_bias=True),
             nn.BatchNorm2d(16),
@@ -65,7 +68,7 @@ class CNN(nn.Cell):
             nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2))
-        self.fc = nn.Dense(7 * 7 * 32, num_classes, weight_init=HeUniform(math.sqrt(5)))
+        self.linear = nn.Dense(7 * 7 * 32, _num_classes, weight_init=HeUniform(math.sqrt(5)))
 
     def construct(self, x):
         out = self.layer1(x)
@@ -89,8 +92,7 @@ for epoch in range(num_epochs):
         label = mindspore.Tensor(label, mstype.int32)
         loss = train_model(image, label)
         if (i + 1) % 100 == 0:
-            print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
-                  .format(epoch + 1, num_epochs, i + 1, total_step, loss.asnumpy().item()))
+            print(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{total_step}], Loss: {loss.asnumpy().item():.4f}')
 
 model.set_train(False)
 
@@ -104,7 +106,7 @@ for image, label in test_dataset.create_tuple_iterator():
     total += label.shape[0]
     correct += (predicted == label).sum().asnumpy().item()
 
-print('Test Accuracy of the model on the 10000 test images: {:.2f} %'.format(100 * correct / total))
+print(f'Test Accuracy of the model on the 10000 test images: {(100 * correct / total):.2f} %')
 
 # Save the model checkpoint
 save_path = './cnn.ckpt'

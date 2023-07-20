@@ -1,14 +1,17 @@
+"""RNN语言模型"""
 import math
 
 import mindspore.common.dtype as mstype
 import mindspore.dataset.vision
-import mindspore.nn as nn
-import mindspore.ops as ops
-import numpy as np
+from mindspore import nn
+from mindspore import ops
 from mindspore import Tensor
 from mindspore.common.initializer import HeUniform, _calculate_fan_in_and_fan_out, initializer, Uniform
+import numpy as np
+
 
 from data_utils import Corpus
+
 
 # 超参数
 embed_size = 128
@@ -30,12 +33,14 @@ num_batches = ids.shape[1] // seq_length
 
 
 class Dense(nn.Dense):
+    """线性层"""
     def __init__(self, in_channels, out_channels, has_bias=True, activation=None):
         super().__init__(in_channels, out_channels, weight_init='normal', bias_init='zeros', has_bias=has_bias,
                          activation=activation)
         self.reset_parameters()
 
     def reset_parameters(self):
+        """重置参数"""
         self.weight.set_data(initializer(HeUniform(math.sqrt(5)), self.weight.shape))
         if self.has_bias:
             fan_in, _ = _calculate_fan_in_and_fan_out(self.weight.shape)
@@ -43,13 +48,13 @@ class Dense(nn.Dense):
             self.bias.set_data(initializer(Uniform(bound), [self.out_channels]))
 
 
-# 基于RNN的语言模型
 class RNNLM(nn.Cell):
-    def __init__(self, vocab_size, embed_size, hidden_size, num_layers):
-        super(RNNLM, self).__init__()
-        self.embed = nn.Embedding(vocab_size, embed_size)
-        self.lstm = nn.LSTM(embed_size, hidden_size, num_layers, batch_first=True)
-        self.linear = Dense(hidden_size, vocab_size)
+    """基于RNN的语言模型"""
+    def __init__(self, _vocab_size, _embed_size, _hidden_size, _num_layers):
+        super().__init__()
+        self.embed = nn.Embedding(_vocab_size, _embed_size)
+        self.lstm = nn.LSTM(_embed_size, _hidden_size, _num_layers, batch_first=True)
+        self.linear = Dense(_hidden_size, _vocab_size)
 
     def construct(self, x, h):
         x = self.embed(x)
@@ -62,11 +67,11 @@ class RNNLM(nn.Cell):
 model = RNNLM(vocab_size, embed_size, hidden_size, num_layers)
 
 
-def forward(inputs, states, targets):
-    # states = tuple(ops.stop_gradient(state) for state in states)
-    outputs, states = model(inputs, states)
-    loss = criterion(outputs, ops.reshape(targets, Tensor(np.array([1]))))
-    return loss
+def forward(_inputs, _states, _targets):
+    """前向传播"""
+    outputs, _states = model(_inputs, _states)
+    _loss = criterion(outputs, ops.reshape(_targets, Tensor(np.array([1]))))
+    return _loss
 
 
 # 损失函数和优化器
@@ -90,37 +95,34 @@ for epoch in range(num_epochs):
 
         step = (i + 1) // seq_length
         if step % 100 == 0:
-            print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Perplexity: {:5.2f}'
-                  .format(epoch + 1,
-                          num_epochs,
-                          step,
-                          num_batches,
-                          loss.asnumpy().item(),
-                          np.exp(loss.asnumpy().item())))
+            print(f'Epoch [{epoch + 1}/{num_epochs}], '
+                  f'Step [{step}/{num_batches}], '
+                  f'Loss: {loss.asnumpy().item():.4f}, '
+                  f'Perplexity: {np.exp(loss.asnumpy().item()):5.2f}')
 
 # 测试模型
 model.set_train(False)
-with open('sample.txt', 'w') as f:
+with open('sample.txt', 'w',encoding='UTF-8') as f:
     state = (ops.zeros((num_layers, 1, hidden_size)),
              ops.zeros((num_layers, 1, hidden_size)))
 
     prob = ops.ones(vocab_size)
-    input = ops.multinomial(prob, num_samples=1).unsqueeze(1)
+    input_t = ops.multinomial(prob, num_samples=1).unsqueeze(1)
 
     for i in range(num_samples):
-        output, state = model(input, state)
+        output, state = model(input_t, state)
 
         prob = output.exp()
         word_id = ops.multinomial(prob, num_samples=1).asnumpy().item()
 
-        input = ops.fill(mstype.int32, input.shape, 1)
+        input_t = ops.fill(mstype.int32, input_t.shape, 1)
 
         word = corpus.dictionary.idx2word[word_id]
         word = '\n' if word == '<eos>' else word + ' '
         f.write(word)
 
         if (i + 1) % 100 == 0:
-            print('Sampled [{}/{}] words and save to {}'.format(i + 1, num_samples, 'sample.txt'))
+            print(f'Sampled [{i + 1}/{num_samples}] words and save to sample.txt')
 
 # 保存模型
 save_path = './lm.ckpt'

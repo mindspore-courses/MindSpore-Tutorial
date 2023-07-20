@@ -1,13 +1,16 @@
+"""数据集处理"""
 import mindspore.dataset as ds
+import numpy as np
 from mindspore.dataset.vision import transforms
 from mindspore.dataset.vision.transforms import Normalize, HWC2CHW
 from mindspore.dataset.transforms.transforms import Duplicate
 
 
-def create_dataset(data_path, crop_size, mode='train', batch_size=32, captions_per_image=5,
+def create_dataset(data_path, crop_size, mode='train', batch_size=2, captions_per_image=5,
                    num_parallel_workers=8):
+    """创建数据集"""
     if mode not in ['train', 'val', 'test']:
-        raise ValueError('not support mode: {}'.format(mode))
+        raise ValueError(f'not support mode: {mode}')
     if mode == 'train':
         drop_remainder = True
         shuffle = True
@@ -19,11 +22,14 @@ def create_dataset(data_path, crop_size, mode='train', batch_size=32, captions_p
 
     data_size = dataset.get_dataset_size()
 
+    # data_size = batch_size
+
     def resize(image, captions, cap_lengths, all_captions, batch_info):
         num = batch_info.get_batch_num() // data_size
+        captions[0][num] = np.append((np.delete(captions[0][num], 0)), 0)
         return image, [captions[0][num]], [cap_lengths[0][num]], all_captions
 
-    def resize2(image, captions, cap_lengths, all_captions, batch_info):
+    def resize2(image, captions, cap_lengths, all_captions):
         image = [i.squeeze(0) for i in image]
         captions = [i.squeeze(0) for i in captions]
         cap_lengths = [i.squeeze(0) for i in cap_lengths]

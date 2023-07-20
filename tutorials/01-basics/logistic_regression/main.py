@@ -1,3 +1,4 @@
+"""逻辑回归"""
 import gzip
 import math
 import os
@@ -74,9 +75,7 @@ for epoch in range(num_epochs):
         label = mindspore.Tensor(label, mstype.int32)
         loss = train_model(image, label)
         if (i + 1) % 100 == 0:
-            print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
-                  .format(epoch + 1, num_epochs, i + 1, total_step, loss.asnumpy().item()))
-
+            print(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{total_step}], Loss: {loss.asnumpy().item():.4f}')
 model.set_train(False)
 
 # 测试模型
@@ -90,7 +89,7 @@ for image, label in test_dataset.create_tuple_iterator():
     total += label.shape[0]
     correct += (predicted == label).sum().asnumpy().item()
 
-print('Test Accuracy of the model on the 10000 test images: {:.2f} %'.format(100 * correct / total))
+print(f'Test Accuracy of the model on the 10000 test images: {(100 * correct / total):.2f} %')
 
 # Save the model checkpoint
 save_path = './model.ckpt'

@@ -1,13 +1,16 @@
+"""MindSpore基本使用"""
 import os
 import tarfile
 import urllib.request
 
 import mindcv
-import mindspore
-import mindspore.nn as nn
+
 import numpy as np
-import mindspore.dataset.transforms as transforms
+
+import mindspore
 from mindspore import ops
+from mindspore import nn
+from mindspore.dataset import transforms
 
 # ================================================================== #
 #                               内容表                                #
@@ -27,15 +30,17 @@ from mindspore import ops
 # ================================================================== #
 
 # 创建Tensor
-x = mindspore.Tensor(1.)
-b = mindspore.Tensor(3.)
-w = mindspore.Tensor(2.)
+x_t = mindspore.Tensor(1.)
+b_t = mindspore.Tensor(3.)
+w_t = mindspore.Tensor(2.)
 
 
 # 定义网络
 class Net(nn.Cell):
+    """f=wx+b"""
+
     def __init__(self):
-        super(Net, self).__init__()
+        super().__init__()
         self.b = mindspore.Tensor(3.)
         self.w = mindspore.Tensor(2.)
 
@@ -47,8 +52,8 @@ class Net(nn.Cell):
 # 计算梯度
 grad_op = ops.GradOperation(get_all=True)
 net = Net()
-grad_fn = grad_op(net, weights=(x, w, b))
-grads = grad_fn(x, w, b)
+grad_fn = grad_op(net, weights=(x_t, w_t, b_t))
+grads = grad_fn(x_t, w_t, b_t)
 # 打印梯度
 print(grads[0])  # x.grad = 2
 print(grads[1])  # w.grad = 1
@@ -59,7 +64,7 @@ print(grads[2])  # b.grad = 1
 # ================================================================== #
 
 # 创建形状为(10,3)和(10,2)的随机Tensor.
-x = ops.randn(10, 3)
+x_t = ops.randn(10, 3)
 y = ops.randn(10, 2)
 
 # 构造全连接层
@@ -74,6 +79,7 @@ optimizer = nn.optim.SGD(linear.trainable_params(), 0.01)
 
 # 定义正向传播函数
 def forward(x):
+    """正向传播函数"""
     pred = linear(x)
     loss = criterion(pred, y)
     return pred, loss
@@ -83,10 +89,10 @@ def forward(x):
 grad_fn = ops.value_and_grad(forward, None, optimizer.parameters, has_aux=True)
 
 # 正向传播
-(pred, loss), grads = grad_fn(x)
+(pred_t, loss_t), grads = grad_fn(x_t)
 
 # 打印loss.
-print('loss: ', loss.asnumpy().item())
+print('loss: ', loss_t.asnumpy().item())
 
 # 打印梯度
 print('dL/dw: ', grads[0])
@@ -95,19 +101,19 @@ print('dL/db: ', grads[1])
 optimizer(grads)
 
 # 打印一步梯度下降后的loss
-pred = linear(x)
-loss = criterion(pred, y)
-print('loss after 1 step optimization: ', loss.asnumpy().item())
+pred_t = linear(x_t)
+loss_t = criterion(pred_t, y)
+print('loss after 1 step optimization: ', loss_t.asnumpy().item())
 
 # ================================================================== #
 #                           3. 从numpy中加载数据                       #
 # ================================================================== #
 
 # 创建一个numpy数组
-x = np.array([[1, 2], [3, 4]])
+x_t = np.array([[1, 2], [3, 4]])
 
 # 把numpy数组转化为tensor
-y = mindspore.Tensor.from_numpy(x)
+y = mindspore.Tensor.from_numpy(x_t)
 
 # 把tensor转化为numpy数组
 z = y.asnumpy()
@@ -153,9 +159,8 @@ for _, (image, label) in enumerate(train_dataset.create_tuple_iterator()):
 
 # 构建自定义数据集使用GeneratorDataset
 # 详见https://www.mindspore.cn/docs/zh-CN/r2.0/api_python/dataset/mindspore.dataset.GeneratorDataset.html
-dataset = mindspore.dataset.GeneratorDataset(
-    # TODO
-)
+# dataset = mindspore.dataset.GeneratorDataset(
+# )
 
 # ================================================================== #
 #                             6. 预训练模型                           #

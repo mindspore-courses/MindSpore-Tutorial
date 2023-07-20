@@ -1,3 +1,4 @@
+"""MindInsight"""
 import gzip
 import math
 import os
@@ -55,14 +56,13 @@ test_dataset = mindspore.dataset.MnistDataset(
     shuffle=False
 ).map(operations=image_transforms, input_columns="image").batch(batch_size=batch_size)
 
-
-# 带一个隐藏层的全连接神经网络
 class NeuralNet(nn.Cell):
-    def __init__(self, input_size, hidden_size, num_classes):
-        super(NeuralNet, self).__init__()
-        self.fc1 = nn.Dense(input_size, hidden_size, weight_init=HeUniform(math.sqrt(5)))
+    """带一个隐藏层的全连接神经网络"""
+    def __init__(self, _input_size, _hidden_size, _num_classes):
+        super().__init__()
+        self.fc1 = nn.Dense(_input_size, _hidden_size, weight_init=HeUniform(math.sqrt(5)))
         self.relu = nn.ReLU()
-        self.fc2 = nn.Dense(hidden_size, num_classes, weight_init=HeUniform(math.sqrt(5)))
+        self.fc2 = nn.Dense(_hidden_size, _num_classes, weight_init=HeUniform(math.sqrt(5)))
 
     def construct(self, x):
         out = self.fc1(x)
@@ -77,9 +77,8 @@ model = NeuralNet(input_size, hidden_size, num_classes)
 criterion = nn.CrossEntropyLoss()
 optimizer = nn.optim.Adam(model.trainable_params(), learning_rate)
 
-
-# 定义正向传播
 def forward(images, labels):
+    """正向传播"""
     output = model(images)
     loss = criterion(output, labels)
     return loss, output
@@ -90,6 +89,7 @@ grad_fn = ops.value_and_grad(forward, None, optimizer.trainable_params, has_aux=
 
 
 def main():
+    """主函数"""
     # 训练模型
     with SummaryRecord('./summary', network=model) as summary_record:
         for epoch in range(num_epochs):
@@ -105,8 +105,7 @@ def main():
                 _, argmax = ops.max(output, 1)
                 accuracy = (label == argmax.squeeze()).float().asnumpy().mean()
                 if (i + 1) % 100 == 0:
-                    print('Step [{}/{}], Loss: {:.4f}, Acc: {:.2f}'
-                          .format(i + 1, total_step, loss.asnumpy().item(), accuracy.item()))
+                    print(f'Step [{i + 1}/{total_step}], Loss: {loss.asnumpy().item():.4f}, Acc: {accuracy.item():.2f}')
                     summary_record.add_value('scalar', 'loss', loss)
                     for tag, value in model.parameters_and_names():
                         tag = tag.replace('.', '/')
@@ -117,29 +116,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    # # ================================================================== #
-    # #                         MindInsight 日志                            #
-    # # ================================================================== #
-    #
-    # # 1. Log scalar values (scalar summary)
-    # summary_collector = mindspore.SummaryCollector(summary_dir='./')
-    # info = {'loss': loss.item(), 'accuracy': accuracy.asnumpy().item()}
-    # scalar_summary = ops.ScalarSummary()
-    # histo_summary = ops.HistogramSummary()
-    # image_summary = ops.ImageSummary()
-    # for tag, value in info.items():
-    #     scalar_summary(tag, value)
-    #
-    # # 2. Log values and gradients of the parameters (histogram summary)
-    # for tag, value in model.parameters_and_names():
-    #     tag = tag.replace('.', '/')
-    #     histo_summary(tag, value.data.asnumpy())
-    #     value = mindspore.Parameter(value)
-    #     histo_summary(tag + '/grad', value.grad.data.asnumpy())
-    #
-    # # 3. Log training images (image summary)
-    # info = {'images': image.view(-1, 28, 28)[:10].asnumpy()}
-    #
-    # for tag, image in info.items():
-    #     image_summary(tag, image)

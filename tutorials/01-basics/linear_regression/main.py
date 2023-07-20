@@ -1,9 +1,10 @@
+"""线性回归"""
 import math
 
 import mindspore
 import numpy as np
 from matplotlib import pyplot as plt
-from mindspore import nn, ops
+from mindspore import nn
 from mindspore.common.initializer import HeUniform
 
 # 超参数
@@ -42,7 +43,7 @@ for epoch in range(num_epochs):
     loss = train_model(inputs, targets)
 
     if (epoch + 1) % 5 == 0:
-        print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch + 1, num_epochs, loss.asnumpy().item()))
+        print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {loss.asnumpy().item():.4f}')
 
 # Plot the graph
 predicted = model(mindspore.Tensor.from_numpy(x_train)).asnumpy()

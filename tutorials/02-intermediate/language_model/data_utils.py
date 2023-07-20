@@ -1,15 +1,19 @@
+"""数据处理工具"""
 import mindspore
 from mindspore import ops
 from mindspore.common import dtype as mstype
 
 
-class Dictionary(object):
+class Dictionary():
+    """字典"""
+
     def __init__(self):
         self.word2idx = {}
         self.idx2word = {}
         self.idx = 0
 
     def add_word(self, word):
+        """加入词语"""
         if not word in self.word2idx:
             self.word2idx[word] = self.idx
             self.idx2word[self.idx] = word
@@ -19,13 +23,15 @@ class Dictionary(object):
         return len(self.word2idx)
 
 
-class Corpus(object):
+class Corpus():
+    """语料库"""
+
     def __init__(self):
         self.dictionary = Dictionary()
 
     def get_data(self, path, batch_size=20):
-        # Add words to the dictionary`
-        with open(path, 'r') as f:
+        """获取数据"""
+        with open(path, 'r', encoding='UTF-8') as f:
             tokens = 0
             for line in f:
                 words = line.split() + ['<eos>']
@@ -37,7 +43,7 @@ class Corpus(object):
         ids = ops.zeros(tokens, mstype.int64).asnumpy()
         # ids = mindspore.Tensor(zeros, dtype=mstype.int64)
         token = 0
-        with open(path, 'r') as f:
+        with open(path, 'r', encoding='UTF-8') as f:
             for line in f:
                 words = line.split() + ['<eos>']
                 for word in words:

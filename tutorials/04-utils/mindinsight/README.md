@@ -1,25 +1,22 @@
-# TensorBoard in PyTorch
+# MindInsight in MindSpore
 
-In this tutorial, we implement a MNIST classifier using a simple neural network and visualize the training process using [TensorBoard](https://www.tensorflow.org/get_started/summaries_and_tensorboard). In training phase, we plot the loss and accuracy functions through `scalar_summary` and visualize the training images through `image_summary`. In addition, we visualize the weight and gradient values of the parameters of the neural network using `histogram_summary`. PyTorch code for handling these summary functions can be found [here](https://github.com/yunjey/pytorch-tutorial/blob/master/tutorials/04-utils/tensorboard/main.py#L81-L97).
+MindSpore Insight是一款可视化调试调优工具，帮助用户获得更优的模型精度和性能。
 
-![alt text](gif/tensorboard.gif)
+通过MindSpore Insight，可以可视化地查看训练过程、优化模型性能、调试精度问题。用户还可以通过MindSpore Insight提供的命令行方便地搜索超参，迁移模型。[官方文档](https://www.mindspore.cn/mindinsight/docs/zh-CN/r2.0/index.html)
 
 <br>
 
 ## Usage 
 
-#### 1. Install the dependencies
+#### 1. 安装MindInsight
+
+#### 2. 训练模型
 ```bash
-$ pip install -r requirements.txt
+$ python main.py
 ```
 
-#### 2. Train the model
-```bash
-$ python main_t.py
-```
-
-#### 3. Open the TensorBoard
-To run the TensorBoard, open a new terminal and run the command below. Then, open http://localhost:6006/ on your web browser.
+#### 3. 打开MindInsight
+运行以下命令，然后打开 http://localhost:6006/
 ```bash
 $ mindinsight --logdir='./logs' --port=6006
 ```

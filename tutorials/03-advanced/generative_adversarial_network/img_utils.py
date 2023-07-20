@@ -1,10 +1,12 @@
+"""图像处理"""
 import math
 import pathlib
+from typing import BinaryIO, Union, Optional, Tuple
 import mindspore
-import mindspore.ops as ops
+from mindspore import ops
 import mindspore.numpy as mnp
 from PIL import Image
-from typing import BinaryIO, Union, Optional, Tuple
+
 
 
 def make_grid(
@@ -15,22 +17,22 @@ def make_grid(
         value_range: Optional[Tuple[int, int]] = None,
         scale_each: bool = False,
         pad_value: float = 0.0):
-    # if list of tensors, convert to a 4D mini-batch Tensor
+    """grid"""
     if isinstance(tensor, list):
         tensor = mnp.stack(tensor, axis=0)
 
-    if tensor.ndim == 2:  # single image H x W
+    if tensor.ndim == 2:
         tensor = tensor.unsqueeze(0)
-    if tensor.ndim == 3:  # single image
-        if tensor.shape[0] == 1:  # if single-channel, convert to 3-channel
+    if tensor.ndim == 3:
+        if tensor.shape[0] == 1:
             tensor = mnp.concatenate((tensor, tensor, tensor), 0)
         tensor = tensor.expand_dims(0)
 
-    if tensor.ndim == 4 and tensor.shape[1] == 1:  # single-channel images
+    if tensor.ndim == 4 and tensor.shape[1] == 1:
         tensor = mnp.concatenate((tensor, tensor, tensor), 1)
 
     if normalize is True:
-        tensor_list = []  # avoid modifying tensor in-place
+        tensor_list = []
         if value_range is not None:
             assert isinstance(
                 value_range, tuple
@@ -41,15 +43,14 @@ def make_grid(
             img = (img - low) / (max(high - low, 1e-5))
             return img
 
-        def norm_range(t, value_range):
+        def norm_range(input_tensor, value_range):
             if value_range is not None:
-                return norm_ip(t, value_range[0], value_range[1])
-            else:
-                return norm_ip(t, float(t.min()), float(t.max()))
+                return norm_ip(input_tensor, value_range[0], value_range[1])
+            return norm_ip(input_tensor, float(input_tensor.min()), float(input_tensor.max()))
 
         if scale_each is True:
-            for t in tensor:  # loop over mini-batch dimension
-                tensor_list.append(norm_range(t, value_range))
+            for input_t in tensor:  # loop over mini-batch dimension
+                tensor_list.append(norm_range(input_t, value_range))
         else:
             tensor_list = norm_range(tensor, value_range)
 
@@ -80,12 +81,13 @@ def make_grid(
 
 
 def to_image(tensor,
-             fp: Union[str, pathlib.Path, BinaryIO],
-             format=None,
+             file: Union[str, pathlib.Path, BinaryIO],
+             _format=None,
              **kwargs):
+    """保存图片"""
     grid = make_grid(tensor, **kwargs)
     # Add 0.5 after unnormalizing to [0, 255] to round to nearest integer
     ndarr = grid * 255 + 0.5
     ndarr = ops.clip_by_value(ndarr, 0, 255).transpose(1, 2, 0).astype(mindspore.uint8).asnumpy()
-    im = Image.fromarray(ndarr)
-    im.save(fp, format=format)
+    img = Image.fromarray(ndarr)
+    img.save(file, format=_format)

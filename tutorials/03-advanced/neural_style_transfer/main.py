@@ -1,3 +1,4 @@
+"""风格转换"""
 from __future__ import division
 
 import argparse
@@ -14,7 +15,7 @@ from img_utils import to_image
 
 
 def load_image(image_path, transform=None, max_size=None, shape=None):
-    """Load an image and convert it to a torch tensor."""
+    """载入图片"""
     image = Image.open(image_path)
 
     if max_size:
@@ -33,8 +34,9 @@ def load_image(image_path, transform=None, max_size=None, shape=None):
 
 
 class VGGNet(nn.Cell):
+    """VGG19"""
     def __init__(self):
-        super(VGGNet, self).__init__()
+        super().__init__()
         self.select = ['0', '5', '10', '19', '28']
         self.vgg = vgg19(pretrained=True).features
 
@@ -57,60 +59,62 @@ vgg = VGGNet()
 
 
 def forward(content, target, style):
+    """前向传播"""
     content_features = vgg(content)
     target_features = vgg(target)
     style_features = vgg(style)
 
     style_loss = 0
     content_loss = 0
-    for f1, f2, f3 in zip(target_features, content_features, style_features):
-        # Compute content loss with target and content images
-        content_loss += ops.mean((f1 - f2) ** 2)
+    for f1_, f2_, f3_ in zip(target_features, content_features, style_features):
+        content_loss += ops.mean((f1_ - f2_) ** 2)
 
         # Reshape convolutional feature maps
-        c, h, w = f1.shape[1], f1.shape[2], f1.shape[3]
-        f1 = f1.view(c, h * w)
-        f3 = f3.view(c, h * w)
+        c, h, w = f1_.shape[1], f1_.shape[2], f1_.shape[3]
+        f1_ = f1_.view(c, h * w)
+        f3_ = f3_.view(c, h * w)
 
         # Compute gram matrix
-        f1 = ops.matmul(f1, f1.t())
-        f3 = ops.matmul(f3, f3.t())
+        f1_ = ops.matmul(f1_, f1_.t())
+        f3_ = ops.matmul(f3_, f3_.t())
 
         # Compute style loss with target and style images
-        style_loss += ops.mean((f1 - f3) ** 2) / (c * h * w)
+        style_loss += ops.mean((f1_ - f3_) ** 2) / (c * h * w)
     return content_loss + config.style_weight * style_loss, content_loss, style_loss
 
 
-def main(config):
+def main(_config):
+    """主函数"""
     # 图像预处理
     transforms = Compose([trans.vision.ToTensor()])
                           # trans.vision.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), is_hwc=False)])
 
-    content = load_image(config.content, transforms, max_size=config.max_size)
-    style = load_image(config.style, transforms, shape=[content.shape[2], content.shape[3]])
+    content = load_image(_config.content, transforms, max_size=_config.max_size)
+    style = load_image(_config.style, transforms, shape=[content.shape[2], content.shape[3]])
 
     # 初始化目标图像
     target = Parameter(content, requires_grad=True)
 
-    optimizer = nn.optim.Adam([target], learning_rate=config.lr, beta1=0.5, beta2=0.999)
+    optimizer = nn.optim.Adam([target], learning_rate=_config.lr, beta1=0.5, beta2=0.999)
     # content, target, style,
     # position is 1
     grad_fn = ops.value_and_grad(forward, 1, has_aux=True)
     vgg.set_train(False)
 
-    for step in range(config.total_step):
-        (loss, content_loss, style_loss), grads = grad_fn(content, target, style)
+    for step in range(_config.total_step):
+        (_, content_loss, style_loss), grads = grad_fn(content, target, style)
         optimizer((grads,))
-        if (step + 1) % config.log_step == 0:
-            print('Step [{}/{}], Content Loss: {:.4f}, Style Loss: {:.4f}'
-                  .format(step + 1, config.total_step, content_loss.asnumpy().item(), style_loss.asnumpy().item()))
+        if (step + 1) % _config.log_step == 0:
+            print(f'Step [{step + 1}/{_config.total_step}], '
+                  f'Content Loss: {content_loss.asnumpy().item():.4f}, '
+                  f'Style Loss: {style_loss.asnumpy().item():.4f}')
 
-        if (step + 1) % config.sample_step == 0:
+        if (step + 1) % _config.sample_step == 0:
             # Save the generated image
             # denorm = trans.vision.Normalize((-2.12, -2.04, -1.80), (4.37, 4.46, 4.44))
             img = target.clone().squeeze()
             img = img.clamp(0, 1)
-            to_image(img, 'output-{}.png'.format(step + 1))
+            to_image(img, f'output-{step + 1}.png')
 
 
 if __name__ == "__main__":

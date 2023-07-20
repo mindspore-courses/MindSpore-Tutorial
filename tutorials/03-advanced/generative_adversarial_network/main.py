@@ -1,15 +1,14 @@
+"""生成对抗网络"""
 import gzip
 import math
 import os
 import shutil
-import urllib
-from urllib import request
+import urllib.request
 
 import mindspore
-import mindspore.common.dtype as mstype
 from mindspore import nn, ops
 from mindspore.common.initializer import HeUniform
-from mindspore.dataset.vision import transforms, write_png
+from mindspore.dataset.vision import transforms
 from img_utils import to_image
 
 # 超参数
@@ -84,31 +83,36 @@ G_Optim = nn.optim.Adam(G.trainable_params(), learning_rate=0.0002)
 
 
 def denorm(x):
+    """反正则化"""
     out = (x + 1) / 2
     return ops.clamp(out, 0, 1)
 
 
-def G_Forward(valid):
+def g_forward(valid):
+    """生成器前向传播"""
     # z = ops.StandardNormal()((real_imgs.shape[0], latent_size))
-    z = ops.randn(batch_size, latent_size)
-    gen_imgs = G(z)
-    g_loss = criterion(D(gen_imgs), valid)
-    return g_loss, gen_imgs
+    _z = ops.randn(batch_size, latent_size)
+    gen_imgs = G(_z)
+    _g_loss = criterion(D(gen_imgs), valid)
+    return _g_loss, gen_imgs
 
 
-def D_Forward(real_imgs, gen_imgs, valid, fake):
-    real_score = D(real_imgs)
-    fake_score = D(gen_imgs)
-    real_loss = criterion(real_score, valid)
-    fake_loss = criterion(fake_score, fake)
-    d_loss = (real_loss + fake_loss)
-    return d_loss, real_score, fake_score
+def d_forward(_real_imgs, _gen_imgs, _valid, _fake):
+    """判别器前向传播"""
+    _real_score = D(_real_imgs)
+    _fake_score = D(_gen_imgs)
+    real_loss = criterion(_real_score, _valid)
+    fake_loss = criterion(_fake_score, _fake)
+    _d_loss = real_loss + fake_loss
+    return _d_loss, _real_score, _fake_score
 
 
-grad_g = ops.value_and_grad(G_Forward, None, G_Optim.parameters, has_aux=True)
-grad_d = ops.value_and_grad(D_Forward, None, D_Optim.parameters, has_aux=True)
+grad_g = ops.value_and_grad(g_forward, None, G_Optim.parameters, has_aux=True)
+grad_d = ops.value_and_grad(d_forward, None, D_Optim.parameters, has_aux=True)
 
 for epoch in range(num_epochs):
+    image = None
+    fake_images = None
     for i, (image, _) in enumerate(dataset.create_tuple_iterator()):
         total_step = dataset.get_dataset_size()
         G.set_train()
@@ -128,10 +132,9 @@ for epoch in range(num_epochs):
         G_Optim(g_grads)
 
         if (i + 1) % 200 == 0:
-            print('Epoch [{}/{}], Step [{}/{}], d_loss: {:.4f}, g_loss: {:.4f}, D(x): {:.2f}, D(G(z)): {:.2f}'
-                  .format(epoch, num_epochs, i + 1, total_step,
-                          d_loss.asnumpy().item(), g_loss.asnumpy().item(),
-                          ops.mean(real_score).asnumpy().item(), ops.mean(fake_score).asnumpy().item()))
+            print(f'Epoch [{epoch}/{num_epochs}], Step [{i + 1}/{total_step}], '
+                  f'd_loss: {d_loss.asnumpy().item():.4f}, g_loss: {g_loss.asnumpy().item():.4f}, '
+                  f'D(x): {ops.mean(real_score).asnumpy().item():.2f}, D(G(z)): {ops.mean(fake_score).asnumpy().item():.2f}')
 
     # Save real images
     if (epoch + 1) == 1:
@@ -140,7 +143,7 @@ for epoch in range(num_epochs):
 
     # Save sampled images
     fake_images = ops.reshape(fake_images, (fake_images.shape[0], 1, 28, 28))
-    to_image(denorm(fake_images), os.path.join(sample_dir, 'fake_images-{}.png'.format(epoch + 1)))
+    to_image(denorm(fake_images), os.path.join(sample_dir, F'fake_images-{epoch + 1}.png'))
 
 mindspore.save_checkpoint(G, './g.ckpt')
 mindspore.save_checkpoint(D, './d.ckpt')
