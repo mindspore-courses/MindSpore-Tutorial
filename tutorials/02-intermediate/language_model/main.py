@@ -50,11 +50,11 @@ class Dense(nn.Dense):
 
 class RNNLM(nn.Cell):
     """基于RNN的语言模型"""
-    def __init__(self, vocab_size, embed_size, hidden_size, num_layers):
+    def __init__(self, _vocab_size, _embed_size, _hidden_size, _num_layers):
         super().__init__()
-        self.embed = nn.Embedding(vocab_size, embed_size)
-        self.lstm = nn.LSTM(embed_size, hidden_size, num_layers, batch_first=True)
-        self.linear = Dense(hidden_size, vocab_size)
+        self.embed = nn.Embedding(_vocab_size, _embed_size)
+        self.lstm = nn.LSTM(_embed_size, _hidden_size, _num_layers, batch_first=True)
+        self.linear = Dense(_hidden_size, _vocab_size)
 
     def construct(self, x, h):
         x = self.embed(x)

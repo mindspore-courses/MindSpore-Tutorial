@@ -58,11 +58,11 @@ test_dataset = mindspore.dataset.MnistDataset(
 
 class NeuralNet(nn.Cell):
     """带一个隐藏层的全连接神经网络"""
-    def __init__(self, input_size, hidden_size, num_classes):
+    def __init__(self, _input_size, _hidden_size, _num_classes):
         super().__init__()
-        self.fc1 = nn.Dense(input_size, hidden_size, weight_init=HeUniform(math.sqrt(5)))
+        self.fc1 = nn.Dense(_input_size, _hidden_size, weight_init=HeUniform(math.sqrt(5)))
         self.relu = nn.ReLU()
-        self.fc2 = nn.Dense(hidden_size, num_classes, weight_init=HeUniform(math.sqrt(5)))
+        self.fc2 = nn.Dense(_hidden_size, _num_classes, weight_init=HeUniform(math.sqrt(5)))
 
     def construct(self, x):
         out = self.fc1(x)

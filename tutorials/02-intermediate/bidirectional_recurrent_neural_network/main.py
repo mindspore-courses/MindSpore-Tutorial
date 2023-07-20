@@ -63,13 +63,13 @@ test_dataset = mindspore.dataset.MnistDataset(
 
 class BiRNN(nn.Cell):
     """双向循环神经网络"""
-    def __init__(self, input_size, hidden_size, num_layers, num_classes):
+    def __init__(self, _input_size, _hidden_size, _num_layers, _num_classes):
         super().__init__()
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
+        self.hidden_size = _hidden_size
+        self.num_layers = _num_layers
         # 双向LSTM
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
-        self.linear = nn.Dense(hidden_size * 2, num_classes, weight_init=HeUniform(math.sqrt(5)))
+        self.lstm = nn.LSTM(_input_size, _hidden_size, _num_layers, batch_first=True, bidirectional=True)
+        self.linear = nn.Dense(_hidden_size * 2, _num_classes, weight_init=HeUniform(math.sqrt(5)))
 
     def construct(self, x):
         # 设置初始状态
