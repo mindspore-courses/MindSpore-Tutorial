@@ -12,29 +12,29 @@ from mindspore import ops
 from mindspore import Tensor
 from mindspore.common.initializer import HeUniform
 
-FILE_PATH = '../../../data/CIFAR-10'
+file_path = '../../../data/CIFAR-10'
 
-if not os.path.exists(FILE_PATH):
+if not os.path.exists(file_path):
     if not os.path.exists('../../../data'):
         os.mkdir('../../../data')
     # 下载CIFAR-10数据集
-    os.mkdir(FILE_PATH)
-    URL = 'https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz'
-    FILE_NAME = 'cifar-10-binary.tar.gz'
-    print("正在从" + URL + "下载CIFAR-10数据集...")
-    result = urllib.request.urlretrieve(URL, os.path.join(FILE_PATH, FILE_NAME))
-    with tarfile.open(os.path.join(FILE_PATH, FILE_NAME), 'r:gz') as tar:
+    os.mkdir(file_path)
+    url = 'https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz'
+    file_name = 'cifar-10-binary.tar.gz'
+    print("正在从" + url + "下载CIFAR-10数据集...")
+    result = urllib.request.urlretrieve(url, os.path.join(file_path, file_name))
+    with tarfile.open(os.path.join(file_path, file_name), 'r:gz') as tar:
         print("正在解压数据集...")
         for member in tar.getmembers():
             if member.name.startswith('cifar-10-batches-bin'):
                 member.name = os.path.basename(member.name)
-                tar.extract(member, path=FILE_PATH)
-    os.remove(os.path.join(FILE_PATH, FILE_NAME))
+                tar.extract(member, path=file_path)
+    os.remove(os.path.join(file_path, file_name))
 
 # 超参数
-NUM_EPOCHS = 80
-BATCH_SIZE = 100
-LEARNING_RATE = 0.001
+num_epochs = 80
+batch_size = 100
+learning_rate = 0.001
 
 # 预处理
 data_transforms = [
@@ -45,16 +45,16 @@ data_transforms = [
 
 # 导入CIFAR-10数据集
 train_dataset = mindspore.dataset.Cifar10Dataset(
-    dataset_dir=FILE_PATH,
+    dataset_dir=file_path,
     usage='train',
     shuffle=True
-).map(operations=data_transforms, input_columns="image").batch(batch_size=BATCH_SIZE)
+).map(operations=data_transforms, input_columns="image").batch(batch_size=batch_size)
 
 test_dataset = mindspore.dataset.Cifar10Dataset(
-    dataset_dir=FILE_PATH,
+    dataset_dir=file_path,
     usage='test',
     shuffle=False
-).map(operations=transforms.ToTensor()).batch(batch_size=BATCH_SIZE)
+).map(operations=transforms.ToTensor()).batch(batch_size=batch_size)
 
 
 def conv3x3(in_channels, out_channels, stride=1):
@@ -133,15 +133,15 @@ model = ResNet(ResidualBlock, [2, 2, 2])
 
 # 定义损失函数和优化器
 criterion = nn.CrossEntropyLoss()
-optimizer = nn.optim.Adam(model.trainable_params(), LEARNING_RATE)
+optimizer = nn.optim.Adam(model.trainable_params(), learning_rate)
 # 绑定损失函数
 train_model = nn.WithLossCell(model, loss_fn=criterion)
 
 train_model = nn.TrainOneStepCell(train_model, optimizer)
 
 # 训练
-CURR_LR = LEARNING_RATE
-for epoch in range(NUM_EPOCHS):
+curr_lr = learning_rate
+for epoch in range(num_epochs):
     for j, (image, label) in enumerate(train_dataset.create_tuple_iterator()):
         total_step = train_dataset.get_dataset_size()
         train_model.set_train()
@@ -149,27 +149,27 @@ for epoch in range(NUM_EPOCHS):
         loss = train_model(image, label)
 
         if (j + 1) % 100 == 0:
-            print(f'Epoch [{epoch + 1}/{NUM_EPOCHS}], Step [{j + 1}/{total_step}], Loss: {loss.asnumpy().item():.4f}')
+            print(f'Epoch [{epoch + 1}/{num_epochs}], Step [{j + 1}/{total_step}], Loss: {loss.asnumpy().item():.4f}')
 
     # 调整学习率
     if (epoch + 1) % 20 == 0:
-        CURR_LR /= 3
-        ops.assign(optimizer.learning_rate, Tensor(CURR_LR))
+        curr_lr /= 3
+        ops.assign(optimizer.learning_rate, Tensor(curr_lr))
         print(f"Current Leaning Rate:{optimizer.get_lr().asnumpy().item()}")
 
 # 测试模型
 model.set_train(False)
-CORRECT = 0
-TOTAL = 0
+correct = 0
+total = 0
 for image, label in test_dataset.create_tuple_iterator():
     label = mindspore.Tensor(label, mstype.int32)
     outputs = model(image)
     _, predicted = ops.max(outputs.value(), 1)
-    TOTAL += label.shape[0]
-    CORRECT += (predicted == label).sum().asnumpy().item()
+    total += label.shape[0]
+    correct += (predicted == label).sum().asnumpy().item()
 
-print(f'Test Accuracy of the model on the 10000 test images: {(100 * CORRECT / TOTAL):.2f} %')
+print(f'Test Accuracy of the model on the 10000 test images: {(100 * correct / total):.2f} %')
 
 # Save the model checkpoint
-SAVE_PATH = './resnet.ckpt'
-mindspore.save_checkpoint(model, SAVE_PATH)
+save_path = './resnet.ckpt'
+mindspore.save_checkpoint(model, save_path)

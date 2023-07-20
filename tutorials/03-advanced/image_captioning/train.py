@@ -23,8 +23,8 @@ def main(_args):
 
     dataset = create_dataset(data_path=args.image_dir, crop_size=args.crop_size, batch_size=128)
 
-    encoder = EncoderCNN(args.EMBED_SIZE)
-    decoder = DecoderRNN(args.EMBED_SIZE, args.HIDDEN_SIZE, len(vocab), args.NUM_LAYERS)
+    encoder = EncoderCNN(args.embed_size)
+    decoder = DecoderRNN(args.embed_size, args.hidden_size, len(vocab), args.num_layers)
     encoder.update_parameters_name("encoder")
     decoder.update_parameters_name("decoder")
 
@@ -33,7 +33,7 @@ def main(_args):
 
     params = list(decoder.trainable_params()) + list(encoder.linear.trainable_params()) + list(
         encoder.batch_norm.trainable_params())
-    optimizer = nn.optim.Adam(params, args.LEARNING_RATE)
+    optimizer = nn.optim.Adam(params, args.learning_rate)
 
     def forward(images, captions, lengths):
         features = encoder(images)
@@ -52,7 +52,7 @@ def main(_args):
     encoder.set_train()
     decoder.set_train()
 
-    for epoch in range(args.NUM_EPOCHS):
+    for epoch in range(args.num_epochs):
         for i, (images, captions, lengths) in enumerate(dataset.create_tuple_iterator()):
             # captions = Tensor(captions, dtype=mstype.float32)
             max_len = max(lengths).asnumpy().item()
@@ -64,7 +64,7 @@ def main(_args):
 
             # Print log info
             if i % args.log_step == 0:
-                print(f'Epoch [{epoch}/{ args.NUM_EPOCHS}], Step [{i}/{total_step}], '
+                print(f'Epoch [{epoch}/{ args.num_epochs}], Step [{i}/{total_step}], '
                       f'Loss: {loss.asnumpy().item():.4f}, '
                       f'Perplexity: {np.exp(loss.asnumpy().item()):5.4f}')
 
@@ -96,10 +96,10 @@ if __name__ == '__main__':
     parser.add_argument('--hidden_size', type=int, default=512, help='dimension of lstm hidden states')
     parser.add_argument('--num_layers', type=int, default=1, help='number of layers in lstm')
 
-    parser.add_argument('--NUM_EPOCHS', type=int, default=5)
+    parser.add_argument('--num_epochs', type=int, default=5)
     parser.add_argument('--batch_size', type=int, default=2)
     parser.add_argument('--num_workers', type=int, default=2)
-    parser.add_argument('--LEARNING_RATE', type=float, default=0.001)
+    parser.add_argument('--learning_rate', type=float, default=0.001)
     args = parser.parse_args()
     print(args)
     main(args)

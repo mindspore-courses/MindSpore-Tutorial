@@ -39,8 +39,8 @@ def main(_args):
         vocab = json.load(f)
 
     # Build models
-    encoder = EncoderCNN(_args.EMBED_SIZE)  # eval mode (batchnorm uses moving mean/variance)
-    decoder = DecoderRNN(_args.EMBED_SIZE, _args.HIDDEN_SIZE, len(vocab), _args.NUM_LAYERS)
+    encoder = EncoderCNN(_args.embed_size)  # eval mode (batchnorm uses moving mean/variance)
+    decoder = DecoderRNN(_args.embed_size, _args.hidden_size, len(vocab), _args.num_layers)
 
     encoder.set_train(False)
     decoder.set_train(False)

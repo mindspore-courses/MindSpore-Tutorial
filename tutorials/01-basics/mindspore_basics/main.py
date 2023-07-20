@@ -123,27 +123,27 @@ z = y.asnumpy()
 # ================================================================== #
 
 # 下载导入 CIFAR-10 数据集.
-FILE_PATH = '../../../data/CIFAR-10'
+file_path = '../../../data/CIFAR-10'
 
-if not os.path.exists(FILE_PATH):
+if not os.path.exists(file_path):
     if not os.path.exists('../../../data'):
         os.mkdir('../../../data')
     # 下载CIFAR-10数据集
-    os.mkdir(FILE_PATH)
-    URL = 'https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz'
-    FILE_NAME = 'cifar-10-binary.tar.gz'
-    print("正在从" + URL + "下载CIFAR-10数据集...")
-    result = urllib.request.urlretrieve(URL, os.path.join(FILE_PATH, FILE_NAME))
-    with tarfile.open(os.path.join(FILE_PATH, FILE_NAME), 'r:gz') as tar:
+    os.mkdir(file_path)
+    url = 'https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz'
+    file_name = 'cifar-10-binary.tar.gz'
+    print("正在从" + url + "下载CIFAR-10数据集...")
+    result = urllib.request.urlretrieve(url, os.path.join(file_path, file_name))
+    with tarfile.open(os.path.join(file_path, file_name), 'r:gz') as tar:
         print("正在解压数据集...")
         for member in tar.getmembers():
             if member.name.startswith('cifar-10-batches-bin'):
                 member.name = os.path.basename(member.name)
-                tar.extract(member, path=FILE_PATH)
-    os.remove(os.path.join(FILE_PATH, FILE_NAME))
+                tar.extract(member, path=file_path)
+    os.remove(os.path.join(file_path, file_name))
 
 train_dataset = mindspore.dataset.Cifar10Dataset(
-    dataset_dir=FILE_PATH,
+    dataset_dir=file_path,
     usage='train',
 ).map(operations=transforms.vision.ToTensor(), input_columns="image")
 

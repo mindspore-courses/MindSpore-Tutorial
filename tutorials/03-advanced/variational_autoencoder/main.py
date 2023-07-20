@@ -12,42 +12,42 @@ from mindspore.dataset.vision import transforms
 from mindspore import ops
 from img_utils import to_image
 
-SAMPLE_DIR = 'samples'
-if not os.path.exists(SAMPLE_DIR):
-    os.makedirs(SAMPLE_DIR)
+sample_dir = 'samples'
+if not os.path.exists(sample_dir):
+    os.makedirs(sample_dir)
 
 # 超参数
-IMAGE_SIZE = 784
-H_DIM = 400
-Z_DIM = 20
-NUM_EPOCHS = 15
-BATCH_SIZE = 128
-LEARNING_RATE = 1e-3
+image_size = 784
+h_dim = 400
+z_dim = 20
+num_epochs = 15
+batch_size = 128
+learning_rate = 1e-3
 
 # MNIST数据集
-FILE_PATH = "../../../data/MNIST/"
+file_path = "../../../data/MNIST/"
 
-if not os.path.exists(FILE_PATH):
+if not os.path.exists(file_path):
     # 下载数据集
     if not os.path.exists('../../../data'):
         os.mkdir('../../../data')
-    os.mkdir(FILE_PATH)
-    BASE_URL = 'http://yann.lecun.com/exdb/mnist/'
+    os.mkdir(file_path)
+    base_url = 'http://yann.lecun.com/exdb/mnist/'
     file_names = ['train-images-idx3-ubyte.gz', 'train-labels-idx1-ubyte.gz',
                   't10k-images-idx3-ubyte.gz', 't10k-labels-idx1-ubyte.gz']
     for file_name in file_names:
-        URL = (BASE_URL + file_name).format(**locals())
-        print("正在从" + URL + "下载MNIST数据集...")
-        urllib.request.urlretrieve(URL, os.path.join(FILE_PATH, file_name))
-        with gzip.open(os.path.join(FILE_PATH, file_name), 'rb') as f_in:
+        url = (base_url + file_name).format(**locals())
+        print("正在从" + url + "下载MNIST数据集...")
+        urllib.request.urlretrieve(url, os.path.join(file_path, file_name))
+        with gzip.open(os.path.join(file_path, file_name), 'rb') as f_in:
             print("正在解压数据集...")
-            with open(os.path.join(FILE_PATH, file_name)[:-3], 'wb') as f_out:
+            with open(os.path.join(file_path, file_name)[:-3], 'wb') as f_out:
                 shutil.copyfileobj(f_in, f_out)
-        os.remove(os.path.join(FILE_PATH, file_name))
+        os.remove(os.path.join(file_path, file_name))
 
 # 创建文件夹
-if not os.path.exists(SAMPLE_DIR):
-    os.makedirs(SAMPLE_DIR)
+if not os.path.exists(sample_dir):
+    os.makedirs(sample_dir)
 
 # Image processing
 # transform = [
@@ -56,9 +56,9 @@ if not os.path.exists(SAMPLE_DIR):
 #                                      std=(0.5, 0.5, 0.5))]
 
 dataset = mindspore.dataset.MnistDataset(
-    dataset_dir=FILE_PATH,
+    dataset_dir=file_path,
     usage='train',
-).map(operations=transforms.ToTensor(), input_columns="image").batch(BATCH_SIZE)
+).map(operations=transforms.ToTensor(), input_columns="image").batch(batch_size)
 
 
 class VAE(nn.Cell):
@@ -97,7 +97,7 @@ class VAE(nn.Cell):
 
 
 model = VAE()
-optimizer = nn.optim.Adam(model.trainable_params(), LEARNING_RATE)
+optimizer = nn.optim.Adam(model.trainable_params(), learning_rate)
 
 
 def forward(_x):
@@ -112,27 +112,27 @@ def forward(_x):
 grad_fn = ops.value_and_grad(forward, None, optimizer.parameters)
 
 # 开始训练
-for epoch in range(NUM_EPOCHS):
-    X = None
-    for i, (X, _) in enumerate(dataset.create_tuple_iterator()):
+for epoch in range(num_epochs):
+    x = None
+    for i, (x, _) in enumerate(dataset.create_tuple_iterator()):
         model.set_train()
         total_step = dataset.get_dataset_size()
-        X = X.view(-1, IMAGE_SIZE)
-        (reconst_loss, kl_div), grads = grad_fn(X)
+        x = x.view(-1, image_size)
+        (reconst_loss, kl_div), grads = grad_fn(x)
         optimizer(grads)
 
         if (i + 1) % 10 == 0:
-            print(f"Epoch[{epoch + 1}/{NUM_EPOCHS}], "
+            print(f"Epoch[{epoch + 1}/{num_epochs}], "
                   f"Step [{i + 1}/{total_step}], "
                   f"Reconst Loss: {reconst_loss.asnumpy().item():.4f}, "
                   f"KL Div: {kl_div.asnumpy().item():.4f}")
 
     # Save the sampled images
-    z = ops.randn(BATCH_SIZE, Z_DIM)
+    z = ops.randn(batch_size, z_dim)
     out = model.decode(z).view(-1, 1, 28, 28)
-    to_image(out, os.path.join(SAMPLE_DIR, f'sampled-{epoch + 1}.png'))
+    to_image(out, os.path.join(sample_dir, f'sampled-{epoch + 1}.png'))
 
     # Save the reconstructed images
-    out, _, _ = model(X)
-    x_concat = ops.cat([X.view(-1, 1, 28, 28), out.view(-1, 1, 28, 28)], axis=3)
-    to_image(x_concat, os.path.join(SAMPLE_DIR, f'reconst-{epoch + 1}.png'))
+    out, _, _ = model(x)
+    x_concat = ops.cat([x.view(-1, 1, 28, 28), out.view(-1, 1, 28, 28)], axis=3)
+    to_image(x_concat, os.path.join(sample_dir, f'reconst-{epoch + 1}.png'))

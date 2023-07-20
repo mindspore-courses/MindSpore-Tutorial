@@ -14,22 +14,22 @@ from data_utils import Corpus
 
 
 # 超参数
-EMBED_SIZE = 128
-HIDDEN_SIZE = 1024
-NUM_LAYERS = 1
-NUM_EPOCHS = 5
-NUM_SAMPLES = 1000  # 要采样的词数
-BATCH_SIZE = 20
-SEQ_LENGTH = 30
-LEARNING_RATE = 0.002
+embed_size = 128
+hidden_size = 1024
+num_layers = 1
+num_epochs = 5
+num_samples = 1000  # 要采样的词数
+batch_size = 20
+seq_length = 30
+learning_rate = 0.002
 GRADIENT_CLIP_MIN = -64000
 GRADIENT_CLIP_MAX = 64000
 
 # 加载数据集
 corpus = Corpus()
-ids = corpus.get_data('../../../data/PennTreeBank/ptb.train.txt', BATCH_SIZE)
-VOCAB_SIZE = len(corpus.dictionary)
-num_batches = ids.shape[1] // SEQ_LENGTH
+ids = corpus.get_data('../../../data/PennTreeBank/ptb.train.txt', batch_size)
+vocab_size = len(corpus.dictionary)
+num_batches = ids.shape[1] // seq_length
 
 
 class Dense(nn.Dense):
@@ -64,7 +64,7 @@ class RNNLM(nn.Cell):
         return out, (h, c)
 
 
-model = RNNLM(VOCAB_SIZE, EMBED_SIZE, HIDDEN_SIZE, NUM_LAYERS)
+model = RNNLM(vocab_size, embed_size, hidden_size, num_layers)
 
 
 def forward(_inputs, _states, _targets):
@@ -76,26 +76,26 @@ def forward(_inputs, _states, _targets):
 
 # 损失函数和优化器
 criterion = nn.CrossEntropyLoss()
-optimizer = nn.optim.Adam(model.trainable_params(), LEARNING_RATE)
+optimizer = nn.optim.Adam(model.trainable_params(), learning_rate)
 grad_fn = ops.value_and_grad(forward, None, optimizer.parameters)
 
 # 训练
-for epoch in range(NUM_EPOCHS):
+for epoch in range(num_epochs):
     model.set_train()
-    states = (ops.zeros((NUM_LAYERS, BATCH_SIZE, HIDDEN_SIZE)),
-              ops.zeros((NUM_LAYERS, BATCH_SIZE, HIDDEN_SIZE)))
+    states = (ops.zeros((num_layers, batch_size, hidden_size)),
+              ops.zeros((num_layers, batch_size, hidden_size)))
 
-    for i in range(0, ids.shape[1] - SEQ_LENGTH, SEQ_LENGTH):
-        inputs = ids[:, i:i + SEQ_LENGTH]
-        targets = mindspore.Tensor.int(ids[:, (i + 1):(i + 1) + SEQ_LENGTH])
+    for i in range(0, ids.shape[1] - seq_length, seq_length):
+        inputs = ids[:, i:i + seq_length]
+        targets = mindspore.Tensor.int(ids[:, (i + 1):(i + 1) + seq_length])
 
         loss, grads = grad_fn(inputs, states, targets)
         grads = ops.clip_by_global_norm(grads, 0.5)
         optimizer(grads)
 
-        step = (i + 1) // SEQ_LENGTH
+        step = (i + 1) // seq_length
         if step % 100 == 0:
-            print(f'Epoch [{epoch + 1}/{NUM_EPOCHS}], '
+            print(f'Epoch [{epoch + 1}/{num_epochs}], '
                   f'Step [{step}/{num_batches}], '
                   f'Loss: {loss.asnumpy().item():.4f}, '
                   f'Perplexity: {np.exp(loss.asnumpy().item()):5.2f}')
@@ -103,13 +103,13 @@ for epoch in range(NUM_EPOCHS):
 # 测试模型
 model.set_train(False)
 with open('sample.txt', 'w',encoding='UTF-8') as f:
-    state = (ops.zeros((NUM_LAYERS, 1, HIDDEN_SIZE)),
-             ops.zeros((NUM_LAYERS, 1, HIDDEN_SIZE)))
+    state = (ops.zeros((num_layers, 1, hidden_size)),
+             ops.zeros((num_layers, 1, hidden_size)))
 
-    prob = ops.ones(VOCAB_SIZE)
+    prob = ops.ones(vocab_size)
     input_t = ops.multinomial(prob, num_samples=1).unsqueeze(1)
 
-    for i in range(NUM_SAMPLES):
+    for i in range(num_samples):
         output, state = model(input_t, state)
 
         prob = output.exp()
@@ -122,8 +122,8 @@ with open('sample.txt', 'w',encoding='UTF-8') as f:
         f.write(word)
 
         if (i + 1) % 100 == 0:
-            print(f'Sampled [{i + 1}/{NUM_SAMPLES}] words and save to sample.txt')
+            print(f'Sampled [{i + 1}/{num_samples}] words and save to sample.txt')
 
 # 保存模型
-SAVE_PATH = './lm.ckpt'
-mindspore.save_checkpoint(model, SAVE_PATH)
+save_path = './lm.ckpt'
+mindspore.save_checkpoint(model, save_path)
