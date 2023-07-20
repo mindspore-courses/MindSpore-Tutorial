@@ -56,7 +56,7 @@ test_dataset = mindspore.dataset.MnistDataset(
 
 class CNN(nn.Cell):
     """卷积神经网络"""
-    def __init__(self, num_classes=10):
+    def __init__(self, _num_classes=10):
         super().__init__()
         self.layer1 = nn.SequentialCell(
             nn.Conv2d(1, 16, kernel_size=5, stride=1, padding=2, pad_mode='pad', has_bias=True),
@@ -68,7 +68,7 @@ class CNN(nn.Cell):
             nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2))
-        self.linear = nn.Dense(7 * 7 * 32, num_classes, weight_init=HeUniform(math.sqrt(5)))
+        self.linear = nn.Dense(7 * 7 * 32, _num_classes, weight_init=HeUniform(math.sqrt(5)))
 
     def construct(self, x):
         out = self.layer1(x)
